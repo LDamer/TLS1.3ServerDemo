@@ -18,7 +18,10 @@ public class AlertParser extends Parser<Alert> {
 
     @Override
     public Alert parse() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte level = parseByteField();
+        byte desc = parseByteField();
+        return new Alert(level, desc);
     }
 
 }
