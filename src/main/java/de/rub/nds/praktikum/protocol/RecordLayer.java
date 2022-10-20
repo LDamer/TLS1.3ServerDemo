@@ -6,6 +6,9 @@ import de.rub.nds.praktikum.records.Record;
 import de.rub.nds.praktikum.records.RecordParser;
 import de.rub.nds.praktikum.records.RecordSerializer;
 import de.rub.nds.praktikum.util.Util;
+//import jdk.jfr.internal.Utils;
+//import sun.security.util.ByteArrays;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,6 +16,7 @@ import java.io.OutputStream;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -83,7 +87,24 @@ public class RecordLayer {
      * @throws IOException if something goes wrong during transmission
      */
     public void sendData(byte[] data, ProtocolType type) throws IOException {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here")
+
+        byte[] version = {(byte)0x03,(byte)0x03};
+        int MAX_APPLICATION_BYTES = 4096 - 1/*type*/ - 2/*version*/ - 2/*length*/;
+
+        int byte_count = 0;
+
+
+
+        while(byte_count < data.length){
+            int left = data.length - byte_count;
+            int upper = left > MAX_APPLICATION_BYTES ? byte_count + MAX_APPLICATION_BYTES : byte_count + left;
+            byte[] current_data = Arrays.copyOfRange(data, byte_count, upper);
+            Record record = new Record(type.getByteValue(), version, current_data);
+            RecordSerializer serializer = new RecordSerializer(record);
+            outputStream.write(serializer.serialize());
+            byte_count += record.getData().length;
+        }
     }
 
     /**
@@ -96,7 +117,18 @@ public class RecordLayer {
      */
     public List<Record> receiveData() throws IOException {
         byte[] data = fetchData();
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        ArrayList<Record> list = new ArrayList<>();
+
+        int byte_count = 0;
+        while(byte_count < data.length) {
+
+            RecordParser parser = new RecordParser(data);
+            Record record = parser.parse();
+            list.add(record);
+            byte_count += record.getData().length:
+        }
+        return list;
     }
 
     private List<byte[]> chunkData(byte[] dataToChunk) {
