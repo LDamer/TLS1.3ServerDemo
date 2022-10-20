@@ -20,6 +20,15 @@ public class RecordParser extends Parser<Record> {
 
     @Override
     public Record parse() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte type;
+        byte[] version, data;
+        int length;
+
+        type = parseByteField();
+        version = parseByteArrayField(2);
+        length = parseIntField(2);
+        data = parseArrayOrTillEnd(length);
+        return new Record(type, version, data);
     }
 }
