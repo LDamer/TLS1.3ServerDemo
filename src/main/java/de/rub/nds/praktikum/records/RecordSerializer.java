@@ -21,7 +21,11 @@ public class RecordSerializer extends Serializer<Record> {
 
     @Override
     protected void serializeBytes() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        appendByte(record.getType());
+        appendBytes(record.getVersion());
+        appendInt(record.getData().length, 2);
+        appendBytes(record.getData());
     }
 
 }
