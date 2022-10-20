@@ -120,13 +120,16 @@ public class RecordLayer {
         //throw new UnsupportedOperationException("Add code here");
         ArrayList<Record> list = new ArrayList<>();
 
-        int byte_count = 0;
-        while(byte_count < data.length) {
+        //int byte_count = 0;
+        while(data.length > 0) {
+            //System.out.println("LAST BYTE OF VERSION " + Util.bytesToHexString(new byte[]{data[2]}));
+            int len = Util.convertToInt(new byte[]{data[3],data[4]});
+            byte[] current_data = Arrays.copyOfRange(data, 0, 5+len);
 
-            RecordParser parser = new RecordParser(data);
+            RecordParser parser = new RecordParser(current_data);
             Record record = parser.parse();
             list.add(record);
-            byte_count += record.getData().length:
+            data = Arrays.copyOfRange(data, 5+len, data.length);//remove first record from array
         }
         return list;
     }
