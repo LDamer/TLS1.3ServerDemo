@@ -43,7 +43,13 @@ public class AlertLayer extends TlsSubProtocol {
      * @throws IOException If something goes wrong during transmission
      */
     public void sendAlert(AlertLevel alertLevel, AlertDescription alertDescription) throws IOException {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        Alert alert = new Alert(alertLevel, alertDescription);
+        if(alertLevel == AlertLevel.FATAL){
+            context.setTlsState(TlsState.ERROR);
+        }
+        AlertSerializer serializer = new AlertSerializer(alert);
+        recordLayer.sendData(serializer.serialize(), ProtocolType.ALERT);
     }
 
     /**
