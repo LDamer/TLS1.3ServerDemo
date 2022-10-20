@@ -19,7 +19,9 @@ public class AlertSerializer extends Serializer<Alert> {
 
     @Override
     protected void serializeBytes() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        appendByte(alert.getLevel());
+        appendByte(alert.getDescription());
     }
 
 }
