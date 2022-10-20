@@ -60,6 +60,17 @@ public class AlertLayer extends TlsSubProtocol {
      */
     @Override
     public void processByteStream(byte[] stream) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+
+        int pointer = 0;
+        while(pointer < stream.length){
+            byte[] current_data = new byte[]{stream[pointer], stream[pointer + 1]};
+            AlertParser parser = new AlertParser(current_data);
+            Alert alert = parser.parse();
+            if(alert.getLevel() == AlertLevel.FATAL.getValue()){
+                context.setTlsState(TlsState.ERROR);
+            }
+            pointer += 2;
+        }
     }
 }
