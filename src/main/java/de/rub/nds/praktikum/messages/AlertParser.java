@@ -21,6 +21,9 @@ public class AlertParser extends Parser<Alert> {
         //throw new UnsupportedOperationException("Add code here");
         byte level = parseByteField();
         byte desc = parseByteField();
+        if(getBytesLeft() > 0){
+            throw new ParserException();
+        }
         return new Alert(level, desc);
     }
 
