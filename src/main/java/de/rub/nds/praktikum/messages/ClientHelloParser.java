@@ -90,6 +90,7 @@ public class ClientHelloParser extends Parser<ClientHello> {
         int seenBytes = 0;
         while(seenBytes < lenOfAllExtension){
             int headerLenOfExtension = FieldLength.EXTENSION_LENGTH+FieldLength.EXTENSION_TYPE;
+
             ExtensionType type = ExtensionType.convert(parseByteArrayField(FieldLength.EXTENSION_TYPE));
             int lenOfThisExtension = parseIntField(FieldLength.EXTENSION_LENGTH);
             setPointer(getPointer()-headerLenOfExtension);// set pointer back to start of extension
