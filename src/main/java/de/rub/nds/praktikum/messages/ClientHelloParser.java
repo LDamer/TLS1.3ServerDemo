@@ -12,6 +12,7 @@ import de.rub.nds.praktikum.messages.extensions.SupportedSignaturesAlgorithmExte
 import de.rub.nds.praktikum.messages.extensions.SupportedVersionsExtension;
 import de.rub.nds.praktikum.messages.extensions.SupportedVersionsExtensionParser;
 import de.rub.nds.praktikum.util.Util;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -68,20 +69,17 @@ public class ClientHelloParser extends Parser<ClientHello> {
         int sessionID_len = parseIntField(FieldLength.SESSION_ID_LENGTH);
         byte[] sessionID_fake = parseByteArrayField(sessionID_len);
         //parse CipherSuites
-        int cipherSuitesLen = parseIntField(FieldLength.CIPHER_SUITE_LENGTH);
+        int cipherSuitesLen = parseIntField(2);
         ArrayList<CipherSuite> cipherList = new ArrayList<>();
         for(int i = 0; i < cipherSuitesLen; i+=2){
             cipherList.add(CipherSuite.convert(parseByteArrayField(2)));
         }
 
-        //parse compression. No compression in TLS 1.3
+        //parse compressions
         int compressionMethodsLen = parseIntField(1);
-        int compressionMethod = parseIntField(1);
-        ArrayList<CompressionMethod> compressionList = new ArrayList<>();
-        compressionList.add(CompressionMethod.NULL);
-        if(compressionMethodsLen != 1 || compressionMethod != 0){
-            throw new ParserException("ClientHelloParser: compression must be a null byte!");
-        }
+
+        LinkedList<CompressionMethod> compressionList = new LinkedList<>();
+        compressionList = (LinkedList<CompressionMethod>) CompressionMethod.convertToList(parseByteArrayField(compressionMethodsLen));
 
         //parse ExtensionLen
         int lenOfAllExtension = parseIntField(FieldLength.EXTENSIONS_LENGTH);
@@ -91,30 +89,34 @@ public class ClientHelloParser extends Parser<ClientHello> {
         while(seenBytes < lenOfAllExtension){
             int headerLenOfExtension = FieldLength.EXTENSION_LENGTH+FieldLength.EXTENSION_TYPE;
 
-            ExtensionType type = ExtensionType.convert(parseByteArrayField(FieldLength.EXTENSION_TYPE));
-            int lenOfThisExtension = parseIntField(FieldLength.EXTENSION_LENGTH);
-            setPointer(getPointer()-headerLenOfExtension);// set pointer back to start of extension
+            ExtensionType type = ExtensionType.convert(parseByteArrayField(2));
+            int lenOfThisExtension = parseIntField(2);
+            //setPointer(getPointer()-headerLenOfExtension);// set pointer back to start of extension
             if(type == ExtensionType.KEY_SHARE){
-                KeyShareExtensionParser parser = new KeyShareExtensionParser(parseByteArrayField(lenOfThisExtension + headerLenOfExtension));
+                KeyShareExtensionParser parser = new KeyShareExtensionParser(parseByteArrayField(lenOfThisExtension));
                 KeyShareExtension share = parser.parse();
                 extensionsList.add(share);
             }else if(type == ExtensionType.SUPPORTED_VERSIONS){
-                SupportedVersionsExtensionParser parser = new SupportedVersionsExtensionParser(parseByteArrayField(lenOfThisExtension + headerLenOfExtension));
+                SupportedVersionsExtensionParser parser = new SupportedVersionsExtensionParser(parseByteArrayField(lenOfThisExtension));
                 SupportedVersionsExtension sv = parser.parse();
                 extensionsList.add(sv);
             }else if(type == ExtensionType.SUPPORTED_GROUPS){
-                SupportedGroupsExtensionParser parser = new SupportedGroupsExtensionParser(parseByteArrayField(lenOfThisExtension + headerLenOfExtension));
+                SupportedGroupsExtensionParser parser = new SupportedGroupsExtensionParser(parseByteArrayField(lenOfThisExtension));
                 SupportedGroupsExtension e = parser.parse();
                 extensionsList.add(e);
             }else if(type == ExtensionType.SUPPORTED_SIGNATURES){
-                SupportedSignaturesAlgorithmExtensionParser parser = new SupportedSignaturesAlgorithmExtensionParser(parseByteArrayField(lenOfThisExtension + headerLenOfExtension));
+                SupportedSignaturesAlgorithmExtensionParser parser = new SupportedSignaturesAlgorithmExtensionParser(parseByteArrayField(lenOfThisExtension));
                 SupportedSignaturesAlgorithmExtension e = parser.parse();
                 extensionsList.add(e);
             }else{
-                //just dismiss the bytes
-                parseArrayOrTillEnd(lenOfThisExtension + headerLenOfExtension);
+                //unknown extension
+                //parseArrayOrTillEnd(lenOfThisExtension + headerLenOfExtension);
+                parseByteArrayField(lenOfThisExtension);
             }
             seenBytes += lenOfThisExtension + headerLenOfExtension;// +2 for type +2 for len fields
+        }
+        if(getBytesLeft() != 0 || seenBytes != lenOfAllExtension){
+            throw new ParserException();
         }
         ClientHello ch = new ClientHello(version_in_header,clientRandom,sessionID_fake, cipherList, compressionList, extensionsList);
         return ch;
