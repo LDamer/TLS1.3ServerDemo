@@ -1,6 +1,9 @@
 package de.rub.nds.praktikum.protocol;
 
 import de.rub.nds.praktikum.constants.ProtocolType;
+import de.rub.nds.praktikum.constants.ProtocolVersion;
+import org.bouncycastle.crypto.tls.ChangeCipherSpec;
+
 import java.io.IOException;
 
 /**
@@ -35,7 +38,8 @@ public class ChangeCipherSpecLayer extends TlsSubProtocol {
      * @throws IOException If something goes wrong during transmission
      */
     public void sendCCS() throws IOException {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        recordLayer.sendData(new byte[]{(byte)0x01}, ProtocolType.CHANGE_CIPHER_SPEC);
     }
 
     /**
@@ -46,5 +50,6 @@ public class ChangeCipherSpecLayer extends TlsSubProtocol {
      */
     @Override
     public void processByteStream(byte[] stream) {
+
     }
 }
