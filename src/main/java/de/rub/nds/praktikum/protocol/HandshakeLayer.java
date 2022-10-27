@@ -45,6 +45,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -85,7 +86,51 @@ public class HandshakeLayer extends TlsSubProtocol {
      * this order or you will not pass the unit tests!!! *IMPORTANT*
      */
     public void sendServerHello() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] random;
+        byte[] sessionId;
+        ProtocolVersion v = ProtocolVersion.TLS_1_3;
+        CipherSuite suite = CipherSuite.TLS_AES_128_GCM_SHA256;
+        CompressionMethod compressionMethod = CompressionMethod.NULL;
+
+        ArrayList<Extension> extensions = new ArrayList<>();
+        //create SupportedVersionExtension
+        ArrayList<ProtocolVersion> svel = new ArrayList<>();
+        svel.add(ProtocolVersion.TLS_1_3);
+        SupportedVersionsExtension sve = new SupportedVersionsExtension(svel);
+        extensions.add(sve);
+
+        //create KeyShareExtension
+        //TODO: THIS IS A DUMMY EXTENSION ONLY!
+        KeyShareExtension kse = new KeyShareExtension(NamedGroup.ECDH_X25519);
+        extensions.add(kse);
+
+        if(!context.getTlsState().equals(TlsState.RECVD_CH)){
+            context.setTlsState(TlsState.ERROR);
+        }
+        if(!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
+            context.setTlsState(TlsState.ERROR);
+        }
+
+        /*ArrayList<NamedGroup> clientGroups = (ArrayList<NamedGroup>) context.getClientNamedGroupList();
+        TODO: find groups server supports
+        for(NamedGroup g : clientGroups){
+        }
+         */
+
+
+        //suppose we can send the serverHello now
+        random = context.getClientRandom();
+        sessionId = Util.hexStringToByteArray("cf21ad74e59a6111be1d8c021e65b891c2a211167abb8c5e079e09e2c8a8\n" +
+                "339c");// DUMMY FOR MIDDLE BOXES!
+
+        ServerHello sh = new ServerHello(v, random, sessionId, suite, compressionMethod, extensions);
+        ServerHelloSerializer shz = new ServerHelloSerializer(sh);
+        try {
+            recordLayer.sendData(shz.serialize(), ProtocolType.HANDSHAKE);
+        }catch(Exception e){
+            context.setTlsState(TlsState.ERROR);
+        }
     }
 
     /**
