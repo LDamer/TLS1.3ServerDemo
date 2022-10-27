@@ -18,7 +18,7 @@ public class KeyShareExtension extends Extension {
     private final List<KeyShareEntry> entryList;
     private final NamedGroup group;
 
-    /**
+     /**
      * Creates entryless KeyShareExtension for use in HelloRetryRequest.
      *
      * @param group The NamedGroup transmitted to the client within a

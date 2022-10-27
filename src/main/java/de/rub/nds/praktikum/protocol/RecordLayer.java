@@ -94,8 +94,6 @@ public class RecordLayer {
 
         int byte_count = 0;
 
-
-
         while(byte_count < data.length){
             int left = data.length - byte_count;
             int upper = left > MAX_APPLICATION_BYTES ? byte_count + MAX_APPLICATION_BYTES : byte_count + left;
