@@ -67,6 +67,9 @@ public class ClientHelloParser extends Parser<ClientHello> {
         byte[] clientRandom = parseByteArrayField(FieldLength.RANDOM);
         //parse useless session ID. Deprecated in TLS 1.3
         int sessionID_len = parseIntField(FieldLength.SESSION_ID_LENGTH);
+        if(sessionID_len > 32){
+            throw new ParserException();
+        }
         byte[] sessionID_fake = parseByteArrayField(sessionID_len);
         //parse CipherSuites
         int cipherSuitesLen = parseIntField(2);
