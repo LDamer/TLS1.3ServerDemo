@@ -21,7 +21,15 @@ public class KeyShareExtensionSerializer extends Serializer<KeyShareExtension> {
 
     @Override
     protected void serializeBytes() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        if(extension.getNamedGroup() != null){
+            appendBytes(extension.getNamedGroup().getValue());
+        }
+        for(KeyShareEntry entry : extension.getEntryList()){
+            appendBytes(entry.getGroupBytes());
+            appendInt(entry.getKeyShare().length,2);
+            appendBytes(entry.getKeyShare());
+        }
     }
 
 }
