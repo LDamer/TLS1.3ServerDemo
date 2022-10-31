@@ -73,7 +73,8 @@ public class TlsProtocol {
      * @throws IOException if something goes wrong with the socket streams
      */
     public void stepConnectionState() throws IOException {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        context.setTlsState(TlsState.START);
     }
 
     /**
