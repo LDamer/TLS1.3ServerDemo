@@ -86,12 +86,36 @@ public class HandshakeLayer extends TlsSubProtocol {
      * this order or you will not pass the unit tests!!! *IMPORTANT*
      */
     public void sendServerHello() {
-        throw new UnsupportedOperationException("Add code here");
-        /*
+        //throw new UnsupportedOperationException("Add code here");
+
+        //server random
         SecureRandom random;
+        random = context.getSecureRandom();
+        byte[] randBytes = new byte[32];
+        random.nextBytes(randBytes);
+
         byte[] sessionId;
         ProtocolVersion v = ProtocolVersion.TLS_1_3;
-        CipherSuite suite = CipherSuite.TLS_AES_128_GCM_SHA256;
+
+        //if(!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
+        //    throw new TlsException("Client does not support TLS1.3");
+        //}
+        context.setSelectedVersion(v);
+
+        boolean found = false;
+        for(CipherSuite cs : context.getClientCipherSuiteList()){
+            if(context.getServerSupportedCipherSuites().contains(cs)){
+                context.setSelectedCiphersuite(cs);
+                found = true;
+                break;
+            }
+        }
+        if(!found){
+            throw new TlsException("No common ciphersuite");
+        }
+        CipherSuite suite = context.getSelectedCiphersuite();
+        //check whether client sent corresponding keyshare
+
         CompressionMethod compressionMethod = CompressionMethod.NULL;
 
         ArrayList<Extension> extensions = new ArrayList<>();
@@ -102,43 +126,38 @@ public class HandshakeLayer extends TlsSubProtocol {
         extensions.add(sve);
 
         //create KeyShareExtension
-        //TODO: THIS IS A DUMMY EXTENSION ONLY!
-        KeyShareExtension kse = new KeyShareExtension(NamedGroup.ECDH_X25519);
+        //TODO: DUMMY -> HOW DO I GET THE CORRECT VALUES?
+        byte[] tmp = new byte[32];
+        KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), tmp);
+        KeyShareExtension kse = new KeyShareExtension(entry);
         extensions.add(kse);
 
-        if(!context.getTlsState().equals(TlsState.RECVD_CH)){
+        /*if(!context.getTlsState().equals(TlsState.RECVD_CH)){
             context.setTlsState(TlsState.ERROR);
             throw new TlsException("cannot send server hello yet");
         }
         if(!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
             context.setTlsState(TlsState.ERROR);
             throw new TlsException("TLS 1.3 not supported by the client");
-
-        }
-
-        //ArrayList<NamedGroup> clientGroups = (ArrayList<NamedGroup>) context.getClientNamedGroupList();
-        //TODO: find groups server supports
-        //for(NamedGroup g : clientGroups){
-        //}
-
-
-        //suppose we can send the serverHello now
-
-        random = context.getSecureRandom();
-        //sessionId = Util.hexStringToByteArray("cf21ad74e59a6111be1d8c021e65b891c2a211167abb8c5e079e09e2c8a8\n" +
-        //        "339c");// DUMMY FOR MIDDLE BOXES
-
+         }
+         */
         sessionId = context.getClientSessionId();
 
-        ServerHello sh = new ServerHello(v, Util.hexStringToByteArray(random.toString()), sessionId, suite, compressionMethod, extensions);
+        ServerHello sh = new ServerHello(v, randBytes,sessionId, suite, compressionMethod, extensions);
         ServerHelloSerializer shz = new ServerHelloSerializer(sh);
+        byte[] serialized = shz.serialize();
+        byte[] length = Util.convertIntToBytes(serialized.length, 3);
+        byte[] type = new byte[]{0x02};
+        byte[] concat = Util.concatenate(type, length, serialized);
+
+
         try {
-            recordLayer.sendData(shz.serialize(), ProtocolType.HANDSHAKE);
+            recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
         }catch(Exception e){
             context.setTlsState(TlsState.ERROR);
             throw new TlsException();
         }
-        */
+
     }
 
     /**
@@ -150,7 +169,34 @@ public class HandshakeLayer extends TlsSubProtocol {
      * this order or you will not pass the unit tests!!! *IMPORTANT*
      */
     public void sendHelloRetryRequest() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+
+        ProtocolVersion v = ProtocolVersion.TLS_1_2;
+        byte[] sessionId = context.getClientSessionId();
+        CipherSuite cs = context.getSelectedCiphersuite();
+        CompressionMethod cm = CompressionMethod.NULL;
+
+        ArrayList<Extension> extensions = new ArrayList<>();
+        //create SupportedVersionExtension
+        ArrayList<ProtocolVersion> svel = new ArrayList<>();
+        svel.add(ProtocolVersion.TLS_1_3);
+        SupportedVersionsExtension sve = new SupportedVersionsExtension(svel);
+        extensions.add(sve);
+
+        //create KeyShareExtension
+        //TODO: DUMMY -> HOW DO I GET THE CORRECT VALUES?
+        KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), HelloRetryRequest.randomValue());
+        KeyShareExtension kse = new KeyShareExtension(entry);
+        extensions.add(kse);
+
+        HelloRetryRequest r = new HelloRetryRequest(sessionId, cs, cm, extensions);
+        ServerHelloSerializer shz = new ServerHelloSerializer(r);
+        try {
+            recordLayer.sendData(shz.serialize(), ProtocolType.HANDSHAKE);
+        }catch(Exception e){
+            context.setTlsState(TlsState.ERROR);
+            throw new TlsException();
+        }
     }
 
     /**
