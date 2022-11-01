@@ -93,6 +93,7 @@ public class HandshakeLayer extends TlsSubProtocol {
         random = context.getSecureRandom();
         byte[] randBytes = new byte[32];
         random.nextBytes(randBytes);
+        context.setServerRandom(randBytes);
 
         byte[] sessionId;
         ProtocolVersion v = ProtocolVersion.TLS_1_3;
@@ -241,7 +242,23 @@ public class HandshakeLayer extends TlsSubProtocol {
      */
     @Override
     public void processByteStream(byte[] stream) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        if(stream[0] == (byte)(0x01)){
+            //client Hello
+            if(context.getTlsState() != TlsState.START){
+                throw new UnexpectedMessageException();
+            }
+            byte[] lenBytes = Arrays.copyOfRange(stream, 1, 4);
+            int len = Util.convertToInt(lenBytes);
+            byte[] payload = Arrays.copyOfRange(stream, 4, 4 + len);
+            try {
+                processClientHello(payload, stream);
+            }catch (IOException e){
+
+            }
+        }else if(stream[0] == (byte)03){
+            //for later .... maybe finished message
+        }
     }
 
 
@@ -253,6 +270,26 @@ public class HandshakeLayer extends TlsSubProtocol {
      * @param handshakePayload handshakePayload to be parsed
      */
     private void processClientHello(byte[] handshakePayload, byte[] stream) throws IOException {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        ClientHelloParser chp = new ClientHelloParser(handshakePayload);
+        ClientHello ch = chp.parse();
+        context.setClientCipherSuiteList(ch.getCiphersuiteList());
+        context.setClientCompressions(ch.getCompressionMethodList());
+        context.setClientSessionId(ch.getSessionId());
+        context.setClientRandom(ch.getRandom());
+        for(Extension e : ch.getExtensionList()){
+            if(e.getType() == ExtensionType.KEY_SHARE){
+                KeyShareExtension ke = (KeyShareExtension)e;
+                context.setClientKeyShareEntryList(ke.getEntryList());
+            }else
+            if(e.getType() == ExtensionType.SUPPORTED_GROUPS){
+                SupportedGroupsExtension ge = (SupportedGroupsExtension)e;
+                context.setClientNamedGroupList(ge.getNamedGroupList());
+            }else if(e.getType() == ExtensionType.SUPPORTED_VERSIONS){
+                SupportedVersionsExtension ve = (SupportedVersionsExtension)e;
+                context.setClientSupportedVersions(ve.getSupportedVersions());
+            }
+        }
+        context.setTlsState(TlsState.RECVD_CH);
     }
 }
