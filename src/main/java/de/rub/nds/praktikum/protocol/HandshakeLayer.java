@@ -51,6 +51,8 @@ import java.util.LinkedList;
 import java.util.List;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.naming.Name;
+
 import org.bouncycastle.math.ec.rfc7748.X25519;
 
 /**
@@ -86,8 +88,7 @@ public class HandshakeLayer extends TlsSubProtocol {
      * this order or you will not pass the unit tests!!! *IMPORTANT*
      */
     public void sendServerHello() {
-        //throw new UnsupportedOperationException("Add code here");
-
+        //throw new UnsupportedOperationException("Add code here")
         //server random
         SecureRandom random;
         random = context.getSecureRandom();
@@ -95,13 +96,14 @@ public class HandshakeLayer extends TlsSubProtocol {
         random.nextBytes(randBytes);
         context.setServerRandom(randBytes);
 
+        //sessionId
         byte[] sessionId;
-        ProtocolVersion v = ProtocolVersion.TLS_1_3;
-
-        //if(!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
-        //    throw new TlsException("Client does not support TLS1.3");
-        //}
-        context.setSelectedVersion(v);
+        sessionId = context.getClientSessionId();
+        /*if(!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
+            throw new TlsException("Client does not support TLS1.3");
+        }*/
+        ProtocolVersion v = ProtocolVersion.TLS_1_2; // version in server Hello. Not in extension
+        context.setSelectedVersion(ProtocolVersion.TLS_1_3);
 
         boolean found = false;
         for(CipherSuite cs : context.getClientCipherSuiteList()){
@@ -112,10 +114,11 @@ public class HandshakeLayer extends TlsSubProtocol {
             }
         }
         if(!found){
-            throw new TlsException("No common ciphersuite");
+            //no ciphersuite in common
+            //context.setTlsState(TlsState.RETRY_HELLO);
+            //sendHelloRetryRequest();
         }
         CipherSuite suite = context.getSelectedCiphersuite();
-        //check whether client sent corresponding keyshare
 
         CompressionMethod compressionMethod = CompressionMethod.NULL;
 
@@ -127,11 +130,29 @@ public class HandshakeLayer extends TlsSubProtocol {
         extensions.add(sve);
 
         //create KeyShareExtension
-        //TODO: DUMMY -> HOW DO I GET THE CORRECT VALUES?
+        //byte[] share = context.getEphemeralPublicKey();
+        //byte[] share = context.getHandshakeSecret();
+        /*found = false;
+        if(context.getClientNamedGroupList() != null) {
+            for (NamedGroup g : context.getClientNamedGroupList()) {
+                if (g.equals(NamedGroup.ECDH_X25519)) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if(!found){
+            //client doesnt have our group
+            context.setTlsState(TlsState.RETRY_HELLO);
+            sendHelloRetryRequest();
+        }
+         */
+
         byte[] tmp = new byte[32];
         KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), tmp);
         KeyShareExtension kse = new KeyShareExtension(entry);
         extensions.add(kse);
+
 
         /*if(!context.getTlsState().equals(TlsState.RECVD_CH)){
             context.setTlsState(TlsState.ERROR);
@@ -142,7 +163,7 @@ public class HandshakeLayer extends TlsSubProtocol {
             throw new TlsException("TLS 1.3 not supported by the client");
          }
          */
-        sessionId = context.getClientSessionId();
+
 
         ServerHello sh = new ServerHello(v, randBytes,sessionId, suite, compressionMethod, extensions);
         ServerHelloSerializer shz = new ServerHelloSerializer(sh);
@@ -151,10 +172,10 @@ public class HandshakeLayer extends TlsSubProtocol {
         byte[] type = new byte[]{0x02};
         byte[] concat = Util.concatenate(type, length, serialized);
 
-
+        context.setTlsState(TlsState.NEGOTIATED);
         try {
             recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
-        }catch(Exception e){
+        } catch (Exception e) {
             context.setTlsState(TlsState.ERROR);
             throw new TlsException();
         }
@@ -174,7 +195,7 @@ public class HandshakeLayer extends TlsSubProtocol {
 
         ProtocolVersion v = ProtocolVersion.TLS_1_2;
         byte[] sessionId = context.getClientSessionId();
-        CipherSuite cs = context.getSelectedCiphersuite();
+        CipherSuite cs = CipherSuite.TLS_AES_128_GCM_SHA256;
         CompressionMethod cm = CompressionMethod.NULL;
 
         ArrayList<Extension> extensions = new ArrayList<>();
@@ -185,8 +206,8 @@ public class HandshakeLayer extends TlsSubProtocol {
         extensions.add(sve);
 
         //create KeyShareExtension
-        //TODO: DUMMY -> HOW DO I GET THE CORRECT VALUES?
-        KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), HelloRetryRequest.randomValue());
+        byte[] tmp = new byte[32];
+        KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), tmp);
         KeyShareExtension kse = new KeyShareExtension(entry);
         extensions.add(kse);
 
@@ -198,6 +219,7 @@ public class HandshakeLayer extends TlsSubProtocol {
             context.setTlsState(TlsState.ERROR);
             throw new TlsException();
         }
+        context.setTlsState(TlsState.AWAIT_RETRY_HELLO_RESPONSE);
     }
 
     /**
@@ -281,8 +303,7 @@ public class HandshakeLayer extends TlsSubProtocol {
             if(e.getType() == ExtensionType.KEY_SHARE){
                 KeyShareExtension ke = (KeyShareExtension)e;
                 context.setClientKeyShareEntryList(ke.getEntryList());
-            }else
-            if(e.getType() == ExtensionType.SUPPORTED_GROUPS){
+            }else if(e.getType() == ExtensionType.SUPPORTED_GROUPS){
                 SupportedGroupsExtension ge = (SupportedGroupsExtension)e;
                 context.setClientNamedGroupList(ge.getNamedGroupList());
             }else if(e.getType() == ExtensionType.SUPPORTED_VERSIONS){
