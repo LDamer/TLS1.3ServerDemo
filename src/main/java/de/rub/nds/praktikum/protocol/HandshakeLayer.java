@@ -105,6 +105,7 @@ public class HandshakeLayer extends TlsSubProtocol {
         ProtocolVersion v = ProtocolVersion.TLS_1_2; // version in server Hello. Not in extension
         context.setSelectedVersion(ProtocolVersion.TLS_1_3);
 
+        //cipherSuite needs to be filtered here beause of a unit test..?
         boolean found = false;
         for(CipherSuite cs : context.getClientCipherSuiteList()){
             if(context.getServerSupportedCipherSuites().contains(cs)){
@@ -113,12 +114,9 @@ public class HandshakeLayer extends TlsSubProtocol {
                 break;
             }
         }
-        if(!found){
-            //no ciphersuite in common
-            //context.setTlsState(TlsState.RETRY_HELLO);
-            //sendHelloRetryRequest();
-        }
+
         CipherSuite suite = context.getSelectedCiphersuite();
+
 
         CompressionMethod compressionMethod = CompressionMethod.NULL;
 
@@ -172,7 +170,7 @@ public class HandshakeLayer extends TlsSubProtocol {
         byte[] type = new byte[]{0x02};
         byte[] concat = Util.concatenate(type, length, serialized);
 
-        context.setTlsState(TlsState.NEGOTIATED);
+        //context.setTlsState(TlsState.WAIT_FINISHED);
         try {
             recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
         } catch (Exception e) {
@@ -204,17 +202,24 @@ public class HandshakeLayer extends TlsSubProtocol {
         svel.add(ProtocolVersion.TLS_1_3);
         SupportedVersionsExtension sve = new SupportedVersionsExtension(svel);
         extensions.add(sve);
+        context.setSelectedVersion(ProtocolVersion.TLS_1_3);
 
         //create KeyShareExtension
-        byte[] tmp = new byte[32];
-        KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), tmp);
-        KeyShareExtension kse = new KeyShareExtension(entry);
+        //byte[] tmp = new byte[2];
+        //KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), tmp);
+        KeyShareExtension kse = new KeyShareExtension(NamedGroup.ECDH_X25519);
         extensions.add(kse);
 
         HelloRetryRequest r = new HelloRetryRequest(sessionId, cs, cm, extensions);
         ServerHelloSerializer shz = new ServerHelloSerializer(r);
+
+        byte[] serialized = shz.serialize();
+        byte[] length = Util.convertIntToBytes(serialized.length, 3);
+        byte[] type = new byte[]{0x02};
+        byte[] concat = Util.concatenate(type, length, serialized);
+
         try {
-            recordLayer.sendData(shz.serialize(), ProtocolType.HANDSHAKE);
+            recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
         }catch(Exception e){
             context.setTlsState(TlsState.ERROR);
             throw new TlsException();
@@ -293,6 +298,8 @@ public class HandshakeLayer extends TlsSubProtocol {
      */
     private void processClientHello(byte[] handshakePayload, byte[] stream) throws IOException {
         //throw new UnsupportedOperationException("Add code here");
+
+        //parse CH and setup context variables
         ClientHelloParser chp = new ClientHelloParser(handshakePayload);
         ClientHello ch = chp.parse();
         context.setClientCipherSuiteList(ch.getCiphersuiteList());
@@ -311,6 +318,36 @@ public class HandshakeLayer extends TlsSubProtocol {
                 context.setClientSupportedVersions(ve.getSupportedVersions());
             }
         }
+        //set the context state according to the variables
+        //cipherSuites
+        if(context.getClientCipherSuiteList() == null){
+            context.setTlsState(TlsState.ERROR);
+            return;
+        }
+        if(!context.getClientCipherSuiteList().contains(CipherSuite.TLS_AES_128_GCM_SHA256)){
+            context.setTlsState(TlsState.RETRY_HELLO);
+            return;
+        }
+        //supported versions
+        if(context.getClientSupportedVersions() == null){
+            context.setTlsState(TlsState.ERROR);
+            return;
+        }
+        if (!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
+            context.setTlsState(TlsState.RETRY_HELLO);//? ERROR?
+            return;
+        }
+        //named groups
+        if(context.getClientNamedGroupList() == null){
+            context.setTlsState(TlsState.ERROR);
+            return;
+        }
+        if(!context.getClientNamedGroupList().contains(NamedGroup.ECDH_X25519)){
+            context.setTlsState(TlsState.RETRY_HELLO);
+            return;
+        }
+        //all fine:) we found cipherSuite, Group and version
         context.setTlsState(TlsState.RECVD_CH);
+
     }
 }
