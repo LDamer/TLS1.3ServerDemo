@@ -8,8 +8,10 @@ import de.rub.nds.praktikum.exception.TlsException;
 import de.rub.nds.praktikum.records.Record;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.security.PrivateKey;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import org.bouncycastle.crypto.tls.Certificate;
@@ -73,8 +75,27 @@ public class TlsProtocol {
      * @throws IOException if something goes wrong with the socket streams
      */
     public void stepConnectionState() throws IOException {
-        throw new UnsupportedOperationException("Add code here");
-        //context.setTlsState(TlsState.START);
+        //throw new UnsupportedOperationException("Add code here");
+        if(context.getTlsState() == TlsState.START){
+            List<Record> recordsList = recordLayer.receiveData();
+            passDataToLayer(recordsList);
+            /*if(handshakeLayer.isSlectionPossible()) {
+                context.setTlsState(TlsState.RECVD_CH);
+            }else{
+                context.setTlsState(TlsState.RETRY_HELLO);
+                //handshakeLayer.sendHelloRetryRequest();
+            }*/
+        }else if(context.getTlsState() == TlsState.RECVD_CH){
+            //context.setTlsState(TlsState.NEGOTIATED);
+            handshakeLayer.sendServerHello();
+        }else if(context.getTlsState() == TlsState.RETRY_HELLO){
+            handshakeLayer.sendHelloRetryRequest();
+            //context.setTlsState(TlsState.AWAIT_RETRY_HELLO_RESPONSE);
+        }else if(context.getTlsState() == TlsState.AWAIT_RETRY_HELLO_RESPONSE){
+            List<Record> recordsList = recordLayer.receiveData();
+            passDataToLayer(recordsList);
+        }
+
     }
 
     /**
@@ -84,7 +105,19 @@ public class TlsProtocol {
      * @param recordList A list of (maybe mixed) records
      */
     private void passDataToLayer(List<Record> recordList) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        for(TlsSubProtocol p : layerList){
+            ArrayList<Record> recordsOfLayer = new ArrayList<>();
+            for(Record r : recordList){
+                if(r.getType() == p.getType()){
+                    recordsOfLayer.add(r);
+                }
+            }
+            if(recordsOfLayer.size() > 0){
+                passSubGroupToLayer(recordsOfLayer);
+            }
+        }
+
     }
 
     /**
@@ -94,7 +127,19 @@ public class TlsProtocol {
      * @param recordList A list consecutive records which all have the same type
      */
     private void passSubGroupToLayer(List<Record> recordList) {
-        throw new UnsupportedOperationException("Add code here");
+        int indexOfProtocol = -1;
+        for(int i = 0; i < layerList.size(); i++){
+            if(layerList.get(i).getType() == recordList.get(0).getType()){
+                indexOfProtocol = i;
+                break;
+            }
+        }
+        assert indexOfProtocol >= 0;
+        assert indexOfProtocol <= layerList.size();
+
+        for(Record r : recordList){
+            layerList.get(indexOfProtocol).processByteStream(r.getData());
+        }
     }
 
     /**

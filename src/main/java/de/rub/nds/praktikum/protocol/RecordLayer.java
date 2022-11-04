@@ -115,6 +115,9 @@ public class RecordLayer {
      */
     public List<Record> receiveData() throws IOException {
         byte[] data = fetchData();
+        if(data.length == 0){
+            throw new TlsException("timeout");
+        }
         //throw new UnsupportedOperationException("Add code here");
         ArrayList<Record> list = new ArrayList<>();
 

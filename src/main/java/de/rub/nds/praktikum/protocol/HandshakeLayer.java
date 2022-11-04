@@ -170,14 +170,13 @@ public class HandshakeLayer extends TlsSubProtocol {
         byte[] type = new byte[]{0x02};
         byte[] concat = Util.concatenate(type, length, serialized);
 
-        //context.setTlsState(TlsState.WAIT_FINISHED);
         try {
             recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
         } catch (Exception e) {
             context.setTlsState(TlsState.ERROR);
             throw new TlsException();
         }
-
+        context.setTlsState(TlsState.NEGOTIATED);
     }
 
     /**
@@ -272,7 +271,8 @@ public class HandshakeLayer extends TlsSubProtocol {
         //throw new UnsupportedOperationException("Add code here");
         if(stream[0] == (byte)(0x01)){
             //client Hello
-            if(context.getTlsState() != TlsState.START){
+            if(context.getTlsState() != TlsState.START &&
+                    context.getTlsState() != TlsState.AWAIT_RETRY_HELLO_RESPONSE){
                 throw new UnexpectedMessageException();
             }
             byte[] lenBytes = Arrays.copyOfRange(stream, 1, 4);
@@ -343,6 +343,20 @@ public class HandshakeLayer extends TlsSubProtocol {
             return;
         }
         if(!context.getClientNamedGroupList().contains(NamedGroup.ECDH_X25519)){
+            context.setTlsState(TlsState.RETRY_HELLO);
+            return;
+        }
+        if(context.getClientKeyShareEntryList() == null){
+            context.setTlsState(TlsState.RETRY_HELLO);
+            return;
+        }
+        boolean keyshareFound = false;
+        for(KeyShareEntry e : context.getClientKeyShareEntryList()){
+            if(e.getGroup() == NamedGroup.ECDH_X25519){
+                keyshareFound = true;
+            }
+        }
+        if(!keyshareFound){
             context.setTlsState(TlsState.RETRY_HELLO);
             return;
         }
