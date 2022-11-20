@@ -81,7 +81,7 @@ public class HkdFunction {
         //throw new UnsupportedOperationException("Add code here");
         try {
             if(salt.length <= 0){
-                salt = new byte[256/8];
+                salt = new byte[32];
             }
             return hmacSHA256(salt, ikm);
 
