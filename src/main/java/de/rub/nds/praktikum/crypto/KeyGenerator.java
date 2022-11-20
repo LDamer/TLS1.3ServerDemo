@@ -20,17 +20,19 @@ public class KeyGenerator {
      */
     public static void adjustHandshakeSecrets(SessionContext context) {
         //throw new UnsupportedOperationException("Add code here");
-
         byte[] earlySecret = HkdFunction.extract(new byte[32],new byte[32]);
         byte[] input = HkdFunction.deriveSecret(earlySecret,HkdFunction.DERIVED, new byte[0]);
-        //handshake
+        //handshake secret
         byte[] handshakeSecret = HkdFunction.extract(input, context.getSharedEcdheSecret());
         context.setHandshakeSecret(handshakeSecret);
-
-        byte[] clientHandshakeTrafficSecret = HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.CLIENT_HANDSHAKE_TRAFFIC_SECRET,
+        //handshake client secret
+        byte[] clientHandshakeTrafficSecret =
+                HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.CLIENT_HANDSHAKE_TRAFFIC_SECRET,
                 context.getDigest());
         context.setClientHandshakeTrafficSecret(clientHandshakeTrafficSecret);
-        byte[] serverHandshakeTrafficSecret = HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.SERVER_HANDSHAKE_TRAFFIC_SECRET,
+        //handshake server secret
+        byte[] serverHandshakeTrafficSecret =
+                HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.SERVER_HANDSHAKE_TRAFFIC_SECRET,
                 context.getDigest());
         context.setServerHandshakeTrafficSecret(serverHandshakeTrafficSecret);
     }
