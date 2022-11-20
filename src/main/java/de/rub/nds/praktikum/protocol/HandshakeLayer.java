@@ -89,9 +89,9 @@ public class HandshakeLayer extends TlsSubProtocol {
      */
     public void sendServerHello() {
         //throw new UnsupportedOperationException("Add code here")
+
         //server random
-        SecureRandom random;
-        random = context.getSecureRandom();
+        SecureRandom random = context.getSecureRandom();
         byte[] randBytes = new byte[32];
         random.nextBytes(randBytes);
         context.setServerRandom(randBytes);
@@ -116,7 +116,6 @@ public class HandshakeLayer extends TlsSubProtocol {
         }
 
         CipherSuite suite = context.getSelectedCiphersuite();
-
 
         CompressionMethod compressionMethod = CompressionMethod.NULL;
 
@@ -146,26 +145,21 @@ public class HandshakeLayer extends TlsSubProtocol {
         }
          */
 
+        computeSharedSecret();
+
         byte[] tmp = new byte[32];
         KeyShareEntry entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), tmp);
+        if(context.getEphemeralPublicKey() != null){
+            entry = new KeyShareEntry(NamedGroup.ECDH_X25519.getValue(), context.getEphemeralPublicKey());
+        }
         KeyShareExtension kse = new KeyShareExtension(entry);
         extensions.add(kse);
-
-
-        /*if(!context.getTlsState().equals(TlsState.RECVD_CH)){
-            context.setTlsState(TlsState.ERROR);
-            throw new TlsException("cannot send server hello yet");
-        }
-        if(!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
-            context.setTlsState(TlsState.ERROR);
-            throw new TlsException("TLS 1.3 not supported by the client");
-         }
-         */
-
 
         ServerHello sh = new ServerHello(v, randBytes,sessionId, suite, compressionMethod, extensions);
         ServerHelloSerializer shz = new ServerHelloSerializer(sh);
         byte[] serialized = shz.serialize();
+        //i think this must be here..?
+        context.updateDigest(serialized);
         byte[] length = Util.convertIntToBytes(serialized.length, 3);
         byte[] type = new byte[]{0x02};
         byte[] concat = Util.concatenate(type, length, serialized);
@@ -213,10 +207,10 @@ public class HandshakeLayer extends TlsSubProtocol {
         ServerHelloSerializer shz = new ServerHelloSerializer(r);
 
         byte[] serialized = shz.serialize();
+        context.updateDigest(serialized);
         byte[] length = Util.convertIntToBytes(serialized.length, 3);
         byte[] type = new byte[]{0x02};
         byte[] concat = Util.concatenate(type, length, serialized);
-
         try {
             recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
         }catch(Exception e){
@@ -279,6 +273,7 @@ public class HandshakeLayer extends TlsSubProtocol {
             int len = Util.convertToInt(lenBytes);
             byte[] payload = Arrays.copyOfRange(stream, 4, 4 + len);
             try {
+                //context.updateDigest(stream);
                 processClientHello(payload, stream);
             }catch (IOException e){
 
@@ -298,8 +293,8 @@ public class HandshakeLayer extends TlsSubProtocol {
      */
     private void processClientHello(byte[] handshakePayload, byte[] stream) throws IOException {
         //throw new UnsupportedOperationException("Add code here");
-
         //parse CH and setup context variables
+        context.updateDigest(stream);
         ClientHelloParser chp = new ClientHelloParser(handshakePayload);
         ClientHello ch = chp.parse();
         context.setClientCipherSuiteList(ch.getCiphersuiteList());
@@ -362,6 +357,33 @@ public class HandshakeLayer extends TlsSubProtocol {
         }
         //all fine:) we found cipherSuite, Group and version
         context.setTlsState(TlsState.RECVD_CH);
+
+    }
+
+    private void computeSharedSecret(){
+        byte[] ephemaralPrivKey = new byte[32];
+        context.getSecureRandom().nextBytes(ephemaralPrivKey);
+        context.setEphemeralPrivateKey(ephemaralPrivKey);
+
+        byte[] ephemeralPubKey = new byte[32];
+        X25519.precompute();
+        // compute public key (a * G) = ePubKey
+        X25519.scalarMultBase(ephemaralPrivKey, 0 , ephemeralPubKey, 0);
+        context.setEphemeralPublicKey(ephemeralPubKey);
+
+        //get client pubkey
+        byte[] pubKeyClient = new byte[32];
+        if(context.getClientKeyShareEntryList() != null)
+        for(KeyShareEntry e : context.getClientKeyShareEntryList()){
+            if(e.getGroup() == NamedGroup.ECDH_X25519){
+                pubKeyClient = e.getKeyShare();
+            }
+        }
+
+        //compute shared secret
+        byte[] sharedSecret = new byte[32];
+        X25519.scalarMult(ephemaralPrivKey, 0 , pubKeyClient, 0, sharedSecret, 0);
+        context.setSharedEcdheSecret(sharedSecret);
 
     }
 }
