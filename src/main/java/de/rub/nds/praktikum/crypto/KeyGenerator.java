@@ -19,7 +19,20 @@ public class KeyGenerator {
      * where to set the secrets in
      */
     public static void adjustHandshakeSecrets(SessionContext context) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+
+        byte[] earlySecret = HkdFunction.extract(new byte[32],new byte[32]);
+        byte[] input = HkdFunction.deriveSecret(earlySecret,HkdFunction.DERIVED, new byte[0]);
+        //handshake
+        byte[] handshakeSecret = HkdFunction.extract(input, context.getSharedEcdheSecret());
+        context.setHandshakeSecret(handshakeSecret);
+
+        byte[] clientHandshakeTrafficSecret = HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.CLIENT_HANDSHAKE_TRAFFIC_SECRET,
+                context.getDigest());
+        context.setClientHandshakeTrafficSecret(clientHandshakeTrafficSecret);
+        byte[] serverHandshakeTrafficSecret = HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.SERVER_HANDSHAKE_TRAFFIC_SECRET,
+                context.getDigest());
+        context.setServerHandshakeTrafficSecret(serverHandshakeTrafficSecret);
     }
 
     /**
@@ -29,6 +42,7 @@ public class KeyGenerator {
      */
     public static void adjustHandshakeKeys(SessionContext context) {
         throw new UnsupportedOperationException("Add code here");
+
     }
 
     /**
@@ -40,7 +54,16 @@ public class KeyGenerator {
      * where to set the secrets in
      */
     public static void adjustApplicationSecrets(SessionContext context) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] input = HkdFunction.deriveSecret(context.getHandshakeSecret(),HkdFunction.DERIVED, new byte[0]);
+        byte[] masterSecret = HkdFunction.extract(input, new byte[32]);
+        context.setMasterSecret(masterSecret);
+        byte[] clientAppSecret = HkdFunction.deriveSecret(context.getMasterSecret(), HkdFunction.CLIENT_APPLICATION_TRAFFIC_SECRET,
+                context.getDigest());
+        context.setClientApplicationTrafficSecret(clientAppSecret);
+        byte[] serverAppSecret = HkdFunction.deriveSecret(context.getMasterSecret(), HkdFunction.SERVER_APPLICATION_TRAFFIC_SECRET,
+                context.getDigest());
+        context.setClientApplicationTrafficSecret(serverAppSecret);
     }
 
     /**
@@ -50,6 +73,7 @@ public class KeyGenerator {
      */
     public static void adjustApplicationKeys(SessionContext context) {
         throw new UnsupportedOperationException("Add code here");
+
     }
 
     /**
