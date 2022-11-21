@@ -101,7 +101,6 @@ public class HkdFunction {
      */
     public static byte[] expand(byte[] prk, byte[] info, int outLen) {
         //throw new UnsupportedOperationException("Add code here");
-        int N = (int)Math.ceil((double)outLen/32);
         byte[] t = new byte[0];
         byte[] okm = new byte[0];
         int i = 1;
