@@ -2,6 +2,8 @@ package de.rub.nds.praktikum.crypto;
 
 import de.rub.nds.praktikum.protocol.SessionContext;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * This is mostly a helper class to collect key computation functions on a
  * single place
@@ -26,14 +28,12 @@ public class KeyGenerator {
         byte[] handshakeSecret = HkdFunction.extract(input, context.getSharedEcdheSecret());
         context.setHandshakeSecret(handshakeSecret);
         //handshake client secret
-        byte[] clientHandshakeTrafficSecret =
-                HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.CLIENT_HANDSHAKE_TRAFFIC_SECRET,
-                context.getDigest());
+        byte[] clientHandshakeTrafficSecret = HkdFunction.deriveSecret(handshakeSecret,
+                HkdFunction.CLIENT_HANDSHAKE_TRAFFIC_SECRET, context.getDigest());
         context.setClientHandshakeTrafficSecret(clientHandshakeTrafficSecret);
         //handshake server secret
-        byte[] serverHandshakeTrafficSecret =
-                HkdFunction.deriveSecret(context.getHandshakeSecret(), HkdFunction.SERVER_HANDSHAKE_TRAFFIC_SECRET,
-                context.getDigest());
+        byte[] serverHandshakeTrafficSecret = HkdFunction.deriveSecret(handshakeSecret,
+                        HkdFunction.SERVER_HANDSHAKE_TRAFFIC_SECRET,context.getDigest());
         context.setServerHandshakeTrafficSecret(serverHandshakeTrafficSecret);
     }
 
@@ -43,8 +43,20 @@ public class KeyGenerator {
      * @param context The session context to compute the handshake keys in
      */
     public static void adjustHandshakeKeys(SessionContext context) {
-        throw new UnsupportedOperationException("Add code here");
-
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] clientWrite, clientIV, serverWrite, serverIV;
+        clientWrite = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
+                HkdFunction.KEY, new byte[0], 32);
+        context.setClientWriteKey(clientWrite);
+        clientIV = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
+                HkdFunction.IV, new byte[0], 12); // 12 = IV len
+        context.setClientWriteIv(clientIV);
+        serverIV = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
+                HkdFunction.IV, new byte[0], 12);
+        context.setServerWriteIv(serverIV);
+        serverWrite = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
+                HkdFunction.KEY, new byte[0], 32);
+        context.setServerWriteKey(serverWrite);
     }
 
     /**
@@ -60,6 +72,7 @@ public class KeyGenerator {
         byte[] input = HkdFunction.deriveSecret(context.getHandshakeSecret(),HkdFunction.DERIVED, new byte[0]);
         byte[] masterSecret = HkdFunction.extract(input, new byte[32]);
         context.setMasterSecret(masterSecret);
+
         byte[] clientAppSecret = HkdFunction.deriveSecret(context.getMasterSecret(), HkdFunction.CLIENT_APPLICATION_TRAFFIC_SECRET,
                 context.getDigest());
         context.setClientApplicationTrafficSecret(clientAppSecret);
@@ -74,8 +87,20 @@ public class KeyGenerator {
      * @param context The session context to compute the application keys in
      */
     public static void adjustApplicationKeys(SessionContext context) {
-        throw new UnsupportedOperationException("Add code here");
-
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] clientWrite, clientIV, serverWrite, serverIV;
+        clientWrite = HkdFunction.expandLabel(context.getMasterSecret(),
+                HkdFunction.KEY, new byte[0], 32);
+        context.setClientWriteKey(clientWrite);
+        clientIV = HkdFunction.expandLabel(context.getMasterSecret(),
+                HkdFunction.IV, new byte[0], 12); // 12 = IV len
+        context.setClientWriteIv(clientIV);
+        serverIV = HkdFunction.expandLabel(context.getMasterSecret(),
+                HkdFunction.IV, new byte[0], 12);
+        context.setServerWriteIv(serverIV);
+        serverWrite = HkdFunction.expandLabel(context.getMasterSecret(),
+                HkdFunction.KEY, new byte[0], 32);
+        context.setServerWriteKey(serverWrite);
     }
 
     /**

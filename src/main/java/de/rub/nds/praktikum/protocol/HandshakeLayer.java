@@ -126,25 +126,6 @@ public class HandshakeLayer extends TlsSubProtocol {
         SupportedVersionsExtension sve = new SupportedVersionsExtension(svel);
         extensions.add(sve);
 
-        //create KeyShareExtension
-        //byte[] share = context.getEphemeralPublicKey();
-        //byte[] share = context.getHandshakeSecret();
-        /*found = false;
-        if(context.getClientNamedGroupList() != null) {
-            for (NamedGroup g : context.getClientNamedGroupList()) {
-                if (g.equals(NamedGroup.ECDH_X25519)) {
-                    found = true;
-                    break;
-                }
-            }
-        }
-        if(!found){
-            //client doesnt have our group
-            context.setTlsState(TlsState.RETRY_HELLO);
-            sendHelloRetryRequest();
-        }
-         */
-
         computeSharedSecret();
 
         byte[] tmp = new byte[32];
@@ -357,7 +338,7 @@ public class HandshakeLayer extends TlsSubProtocol {
         }
         //all fine:) we found cipherSuite, Group and version
         context.setTlsState(TlsState.RECVD_CH);
-
+        KeyGenerator.adjustHandshakeSecrets(context);
     }
 
     private void computeSharedSecret(){
@@ -384,6 +365,5 @@ public class HandshakeLayer extends TlsSubProtocol {
         byte[] sharedSecret = new byte[32];
         X25519.scalarMult(ephemaralPrivKey, 0 , pubKeyClient, 0, sharedSecret, 0);
         context.setSharedEcdheSecret(sharedSecret);
-
     }
 }
