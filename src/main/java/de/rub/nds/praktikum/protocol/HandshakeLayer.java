@@ -139,12 +139,10 @@ public class HandshakeLayer extends TlsSubProtocol {
         ServerHello sh = new ServerHello(v, randBytes,sessionId, suite, compressionMethod, extensions);
         ServerHelloSerializer shz = new ServerHelloSerializer(sh);
         byte[] serialized = shz.serialize();
-        //i think this must be here..?
-        context.updateDigest(serialized);
         byte[] length = Util.convertIntToBytes(serialized.length, 3);
         byte[] type = new byte[]{0x02};
         byte[] concat = Util.concatenate(type, length, serialized);
-
+        context.updateDigest(concat);
         try {
             recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
         } catch (Exception e) {
@@ -152,6 +150,8 @@ public class HandshakeLayer extends TlsSubProtocol {
             throw new TlsException();
         }
         context.setTlsState(TlsState.NEGOTIATED);
+        KeyGenerator.adjustHandshakeSecrets(context);
+        KeyGenerator.adjustHandshakeKeys(context);
     }
 
     /**
