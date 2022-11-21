@@ -99,6 +99,9 @@ public class RecordLayer {
             int upper = left > MAX_APPLICATION_BYTES ? byte_count + MAX_APPLICATION_BYTES : byte_count + left;
             byte[] current_data = Arrays.copyOfRange(data, byte_count, upper);
             Record record = new Record(type.getByteValue(), version, current_data);
+            if(encryptionIsActive){
+                encrypt(record);
+            }
             RecordSerializer serializer = new RecordSerializer(record);
             outputStream.write(serializer.serialize());
             byte_count += record.getData().length;
@@ -129,6 +132,9 @@ public class RecordLayer {
 
             RecordParser parser = new RecordParser(current_data);
             Record record = parser.parse();
+            if(encryptionIsActive) {
+                decrypt(record);
+            }
             list.add(record);
             data = Arrays.copyOfRange(data, 5+len, data.length);//remove first record from array
         }
