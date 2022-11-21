@@ -88,6 +88,7 @@ public class TlsProtocol {
         }else if(context.getTlsState() == TlsState.RECVD_CH){
             //context.setTlsState(TlsState.NEGOTIATED);
             handshakeLayer.sendServerHello();
+            recordLayer.activateEncryption();
         }else if(context.getTlsState() == TlsState.RETRY_HELLO){
             handshakeLayer.sendHelloRetryRequest();
             //context.setTlsState(TlsState.AWAIT_RETRY_HELLO_RESPONSE);
