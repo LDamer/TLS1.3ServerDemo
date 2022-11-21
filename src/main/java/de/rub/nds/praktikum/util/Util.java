@@ -148,6 +148,17 @@ public class Util {
         return result.toString();
     }
 
+    public static byte[] XOR(byte[] a, byte[]b){
+        if(a.length != b.length){
+           return null;
+        }
+        byte[] res = new byte[a.length];
+        for(int i = 0; i < res.length; i++){
+            res[i] = (byte) (a[i] ^ b[i]);
+        }
+        return res;
+    }
+
     private Util() {
     }
     
