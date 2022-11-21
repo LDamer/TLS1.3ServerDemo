@@ -1,6 +1,7 @@
 package de.rub.nds.praktikum.crypto;
 
 import de.rub.nds.praktikum.protocol.SessionContext;
+import org.bouncycastle.jcajce.provider.symmetric.AES;
 
 import java.nio.charset.StandardCharsets;
 
@@ -44,19 +45,19 @@ public class KeyGenerator {
      */
     public static void adjustHandshakeKeys(SessionContext context) {
         //throw new UnsupportedOperationException("Add code here");
-        byte[] clientWrite, clientIV, serverWrite, serverIV;
-        clientWrite = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
-                HkdFunction.KEY, new byte[0], 32);
-        context.setClientWriteKey(clientWrite);
-        clientIV = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
-                HkdFunction.IV, new byte[0], 12); // 12 = IV len
-        context.setClientWriteIv(clientIV);
-        serverIV = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
-                HkdFunction.IV, new byte[0], 12);
-        context.setServerWriteIv(serverIV);
-        serverWrite = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
-                HkdFunction.KEY, new byte[0], 32);
-        context.setServerWriteKey(serverWrite);
+        byte[] clientWriteKey, clientWriteIV, serverWriteKey, serverWriteIV;
+        clientWriteKey = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
+                HkdFunction.KEY, new byte[0], 16);
+        context.setClientWriteKey(clientWriteKey);
+        clientWriteIV = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
+                HkdFunction.IV, new byte[0], GCM_IV_LENGTH); // 12 = IV len
+        context.setClientWriteIv(clientWriteIV);
+        serverWriteKey = HkdFunction.expandLabel(context.getServerHandshakeTrafficSecret(),
+                HkdFunction.KEY, new byte[0], 16);
+        context.setServerWriteKey(serverWriteKey);
+        serverWriteIV = HkdFunction.expandLabel(context.getServerHandshakeTrafficSecret(),
+                HkdFunction.IV, new byte[0], GCM_IV_LENGTH);
+        context.setServerWriteIv(serverWriteIV);
     }
 
     /**
@@ -73,10 +74,10 @@ public class KeyGenerator {
         byte[] masterSecret = HkdFunction.extract(input, new byte[32]);
         context.setMasterSecret(masterSecret);
 
-        byte[] clientAppSecret = HkdFunction.expandLabel(context.getMasterSecret(), HkdFunction.CLIENT_APPLICATION_TRAFFIC_SECRET,
+        byte[] clientAppSecret = HkdFunction.expandLabel(masterSecret, HkdFunction.CLIENT_APPLICATION_TRAFFIC_SECRET,
                 context.getDigest(), 32);
         context.setClientApplicationTrafficSecret(clientAppSecret);
-        byte[] serverAppSecret = HkdFunction.expandLabel(context.getMasterSecret(), HkdFunction.SERVER_APPLICATION_TRAFFIC_SECRET,
+        byte[] serverAppSecret = HkdFunction.expandLabel(masterSecret, HkdFunction.SERVER_APPLICATION_TRAFFIC_SECRET,
                 context.getDigest(), 32);
         context.setClientApplicationTrafficSecret(serverAppSecret);
     }
