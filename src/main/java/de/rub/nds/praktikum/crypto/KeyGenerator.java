@@ -79,7 +79,7 @@ public class KeyGenerator {
         context.setClientApplicationTrafficSecret(clientAppSecret);
         byte[] serverAppSecret = HkdFunction.expandLabel(masterSecret, HkdFunction.SERVER_APPLICATION_TRAFFIC_SECRET,
                 context.getDigest(), 32);
-        context.setClientApplicationTrafficSecret(serverAppSecret);
+        context.setServerApplicationTrafficSecret(serverAppSecret);
     }
 
     /**
@@ -90,17 +90,17 @@ public class KeyGenerator {
     public static void adjustApplicationKeys(SessionContext context) {
         //throw new UnsupportedOperationException("Add code here");
         byte[] clientWrite, clientIV, serverWrite, serverIV;
-        clientWrite = HkdFunction.expandLabel(context.getMasterSecret(),
-                HkdFunction.KEY, new byte[0], 32);
+        clientWrite = HkdFunction.expandLabel(context.getClientApplicationTrafficSecret(),
+                HkdFunction.KEY, new byte[0], 16);
         context.setClientWriteKey(clientWrite);
-        clientIV = HkdFunction.expandLabel(context.getMasterSecret(),
+        clientIV = HkdFunction.expandLabel(context.getClientApplicationTrafficSecret(),
                 HkdFunction.IV, new byte[0], 12); // 12 = IV len
         context.setClientWriteIv(clientIV);
-        serverIV = HkdFunction.expandLabel(context.getMasterSecret(),
+        serverIV = HkdFunction.expandLabel(context.getServerApplicationTrafficSecret(),
                 HkdFunction.IV, new byte[0], 12);
         context.setServerWriteIv(serverIV);
-        serverWrite = HkdFunction.expandLabel(context.getMasterSecret(),
-                HkdFunction.KEY, new byte[0], 32);
+        serverWrite = HkdFunction.expandLabel(context.getServerApplicationTrafficSecret(),
+                HkdFunction.KEY, new byte[0], 16);
         context.setServerWriteKey(serverWrite);
     }
 
