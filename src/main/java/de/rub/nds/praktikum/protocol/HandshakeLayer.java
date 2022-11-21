@@ -10,6 +10,7 @@ import de.rub.nds.praktikum.constants.ProtocolType;
 import de.rub.nds.praktikum.constants.ProtocolVersion;
 import de.rub.nds.praktikum.constants.SignatureAndHashAlgorithm;
 import de.rub.nds.praktikum.constants.TlsState;
+import de.rub.nds.praktikum.crypto.HkdFunction;
 import de.rub.nds.praktikum.crypto.KeyGenerator;
 import de.rub.nds.praktikum.exception.ParserException;
 import de.rub.nds.praktikum.exception.TlsException;
@@ -188,10 +189,10 @@ public class HandshakeLayer extends TlsSubProtocol {
         ServerHelloSerializer shz = new ServerHelloSerializer(r);
 
         byte[] serialized = shz.serialize();
-        context.updateDigest(serialized);
         byte[] length = Util.convertIntToBytes(serialized.length, 3);
         byte[] type = new byte[]{0x02};
         byte[] concat = Util.concatenate(type, length, serialized);
+        context.updateDigest(concat);
         try {
             recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
         }catch(Exception e){
@@ -244,7 +245,7 @@ public class HandshakeLayer extends TlsSubProtocol {
     @Override
     public void processByteStream(byte[] stream) {
         //throw new UnsupportedOperationException("Add code here");
-        if(stream[0] == (byte)(0x01)){
+        if(stream[0] == HandshakeMessageType.CLIENT_HELLO.getValue()){
             //client Hello
             if(context.getTlsState() != TlsState.START &&
                     context.getTlsState() != TlsState.AWAIT_RETRY_HELLO_RESPONSE){
@@ -275,7 +276,7 @@ public class HandshakeLayer extends TlsSubProtocol {
     private void processClientHello(byte[] handshakePayload, byte[] stream) throws IOException {
         //throw new UnsupportedOperationException("Add code here");
         //parse CH and setup context variables
-        context.updateDigest(stream);
+
         ClientHelloParser chp = new ClientHelloParser(handshakePayload);
         ClientHello ch = chp.parse();
         context.setClientCipherSuiteList(ch.getCiphersuiteList());
@@ -300,8 +301,12 @@ public class HandshakeLayer extends TlsSubProtocol {
             context.setTlsState(TlsState.ERROR);
             return;
         }
-        if(!context.getClientCipherSuiteList().contains(CipherSuite.TLS_AES_128_GCM_SHA256)){
+        if(!context.getClientCipherSuiteList().contains(CipherSuite.TLS_AES_128_GCM_SHA256) ||
+                !context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3) ||
+                !context.getClientNamedGroupList().contains(NamedGroup.ECDH_X25519) ||
+                context.getClientKeyShareEntryList() == null){
             context.setTlsState(TlsState.RETRY_HELLO);
+            updateDigest(stream);
             return;
         }
         //supported versions
@@ -309,23 +314,23 @@ public class HandshakeLayer extends TlsSubProtocol {
             context.setTlsState(TlsState.ERROR);
             return;
         }
-        if (!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
-            context.setTlsState(TlsState.RETRY_HELLO);//? ERROR?
-            return;
-        }
+        //if (!context.getClientSupportedVersions().contains(ProtocolVersion.TLS_1_3)){
+        //    context.setTlsState(TlsState.RETRY_HELLO);//? ERROR?
+        //    return;
+        //}
         //named groups
         if(context.getClientNamedGroupList() == null){
             context.setTlsState(TlsState.ERROR);
             return;
         }
-        if(!context.getClientNamedGroupList().contains(NamedGroup.ECDH_X25519)){
-            context.setTlsState(TlsState.RETRY_HELLO);
-            return;
-        }
-        if(context.getClientKeyShareEntryList() == null){
-            context.setTlsState(TlsState.RETRY_HELLO);
-            return;
-        }
+        //if(!context.getClientNamedGroupList().contains(NamedGroup.ECDH_X25519)){
+        //    context.setTlsState(TlsState.RETRY_HELLO);
+        //    return;
+        //}
+        //if(context.getClientKeyShareEntryList() == null){
+        //    context.setTlsState(TlsState.RETRY_HELLO);
+        //    return;
+        //}
         boolean keyshareFound = false;
         for(KeyShareEntry e : context.getClientKeyShareEntryList()){
             if(e.getGroup() == NamedGroup.ECDH_X25519){
@@ -334,11 +339,20 @@ public class HandshakeLayer extends TlsSubProtocol {
         }
         if(!keyshareFound){
             context.setTlsState(TlsState.RETRY_HELLO);
+            updateDigest(stream);
             return;
         }
         //all fine:) we found cipherSuite, Group and version
         context.setTlsState(TlsState.RECVD_CH);
+        context.updateDigest(stream);
         KeyGenerator.adjustHandshakeSecrets(context);
+    }
+
+    private void updateDigest(byte[] stream){
+        context.updateDigest(new byte[]{HandshakeMessageType.MESSAGE_HASH.getValue()});
+        context.updateDigest(new byte[]{(byte)0x00,(byte)0x00, (byte)32});
+        context.updateDigest(HkdFunction.sha256(stream));//hash(ClientHello1)
+
     }
 
     private void computeSharedSecret(){
