@@ -128,7 +128,7 @@ public class HkdFunction {
         return Util.concatenate(outLenBytes, labelLenBytes, tlsLabelBytes, labelInBytes, hashLenBytes, hashValue);
     }
 
-    private static byte[] sha256(byte[] data){
+    public static byte[] sha256(byte[] data){
         try {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             return sha256.digest(data);
