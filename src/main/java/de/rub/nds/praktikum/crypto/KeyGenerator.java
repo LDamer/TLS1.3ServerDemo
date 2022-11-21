@@ -28,12 +28,12 @@ public class KeyGenerator {
         byte[] handshakeSecret = HkdFunction.extract(input, context.getSharedEcdheSecret());
         context.setHandshakeSecret(handshakeSecret);
         //handshake client secret
-        byte[] clientHandshakeTrafficSecret = HkdFunction.deriveSecret(handshakeSecret,
-                HkdFunction.CLIENT_HANDSHAKE_TRAFFIC_SECRET, context.getDigest());
+        byte[] clientHandshakeTrafficSecret = HkdFunction.expandLabel(handshakeSecret,
+                HkdFunction.CLIENT_HANDSHAKE_TRAFFIC_SECRET, context.getDigest(), 32);
         context.setClientHandshakeTrafficSecret(clientHandshakeTrafficSecret);
         //handshake server secret
-        byte[] serverHandshakeTrafficSecret = HkdFunction.deriveSecret(handshakeSecret,
-                        HkdFunction.SERVER_HANDSHAKE_TRAFFIC_SECRET,context.getDigest());
+        byte[] serverHandshakeTrafficSecret = HkdFunction.expandLabel(handshakeSecret,
+                        HkdFunction.SERVER_HANDSHAKE_TRAFFIC_SECRET,context.getDigest(), 32);
         context.setServerHandshakeTrafficSecret(serverHandshakeTrafficSecret);
     }
 
@@ -73,11 +73,11 @@ public class KeyGenerator {
         byte[] masterSecret = HkdFunction.extract(input, new byte[32]);
         context.setMasterSecret(masterSecret);
 
-        byte[] clientAppSecret = HkdFunction.deriveSecret(context.getMasterSecret(), HkdFunction.CLIENT_APPLICATION_TRAFFIC_SECRET,
-                context.getDigest());
+        byte[] clientAppSecret = HkdFunction.expandLabel(context.getMasterSecret(), HkdFunction.CLIENT_APPLICATION_TRAFFIC_SECRET,
+                context.getDigest(), 32);
         context.setClientApplicationTrafficSecret(clientAppSecret);
-        byte[] serverAppSecret = HkdFunction.deriveSecret(context.getMasterSecret(), HkdFunction.SERVER_APPLICATION_TRAFFIC_SECRET,
-                context.getDigest());
+        byte[] serverAppSecret = HkdFunction.expandLabel(context.getMasterSecret(), HkdFunction.SERVER_APPLICATION_TRAFFIC_SECRET,
+                context.getDigest(), 32);
         context.setClientApplicationTrafficSecret(serverAppSecret);
     }
 
