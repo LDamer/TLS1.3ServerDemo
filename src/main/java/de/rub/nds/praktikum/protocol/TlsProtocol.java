@@ -4,6 +4,7 @@ import de.rub.nds.praktikum.constants.AlertDescription;
 import de.rub.nds.praktikum.constants.AlertLevel;
 import de.rub.nds.praktikum.constants.ProtocolType;
 import de.rub.nds.praktikum.constants.TlsState;
+import de.rub.nds.praktikum.crypto.KeyGenerator;
 import de.rub.nds.praktikum.exception.TlsException;
 import de.rub.nds.praktikum.records.Record;
 import java.io.ByteArrayOutputStream;
@@ -79,15 +80,11 @@ public class TlsProtocol {
         if(context.getTlsState() == TlsState.START){
             List<Record> recordsList = recordLayer.receiveData();
             passDataToLayer(recordsList);
-            /*if(handshakeLayer.isSlectionPossible()) {
-                context.setTlsState(TlsState.RECVD_CH);
-            }else{
-                context.setTlsState(TlsState.RETRY_HELLO);
-                //handshakeLayer.sendHelloRetryRequest();
-            }*/
         }else if(context.getTlsState() == TlsState.RECVD_CH){
             //context.setTlsState(TlsState.NEGOTIATED);
             handshakeLayer.sendServerHello();
+            //KeyGenerator.adjustHandshakeSecrets(context);
+            //KeyGenerator.adjustHandshakeKeys(context);
             recordLayer.activateEncryption();
         }else if(context.getTlsState() == TlsState.RETRY_HELLO){
             handshakeLayer.sendHelloRetryRequest();
