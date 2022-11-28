@@ -1,5 +1,6 @@
 package de.rub.nds.praktikum.protocol;
 
+import de.rub.nds.praktikum.constants.HandshakeMessageType;
 import de.rub.nds.praktikum.constants.ProtocolType;
 import de.rub.nds.praktikum.exception.TlsException;
 import de.rub.nds.praktikum.records.Record;
@@ -20,10 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.*;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -181,7 +179,30 @@ public class RecordLayer {
      * @param record
      */
     protected void encrypt(Record record) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+
+        byte[] plain = Util.concatenate(record.getData(), new byte[]{record.getType()});
+
+        record.setType(ProtocolType.APPLICATION_DATA.getByteValue());
+        int newL = plain.length+GCM_TAG_LENGTH;
+        byte[] newLength = Util.convertIntToBytes(newL, 2);
+        byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(), newLength);
+        byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(writeSequencenumber, 8));
+        byte[] IV_GCM = Util.XOR(nonce, context.getServerWriteIv());
+        if(IV_GCM == null){
+            System.out.println("\n\n\nerror\n\n\n");
+        }
+        try {
+            SecretKey key = new SecretKeySpec(context.getServerWriteKey(), "AES");
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(128, IV_GCM));
+            cipher.updateAAD(aad);
+            byte[] c = cipher.doFinal(plain);
+            record.setData(c);
+        }catch (Exception e){
+            throw new TlsException("cant find aes gcm");
+        }
+        writeSequencenumber++;
     }
 
     /**
@@ -190,13 +211,38 @@ public class RecordLayer {
      * @param record Record that should be decrypted
      */
     public void decrypt(Record record) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(readSequencenumber, 8));
+        byte[] IV_GCM = Util.XOR(nonce, context.getClientWriteIv());
+        byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(),Util.convertIntToBytes(record.getData().length,2));
+        //if(IV_GCM == null){
+        //    System.out.println("\n\n\nerror\n\n\n");
+        //}
+        try {
+            SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
+            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, IV_GCM));
+            cipher.updateAAD(aad);
+            byte[] c = cipher.doFinal(record.getData());
+            record.setData(c);
+        }catch (Exception e){
+            throw new TlsException("cant find aes gcm");
+        }
+        //corrent type
+        int plaintextLength = record.getData().length;
+        byte type = record.getData()[plaintextLength-1];
+        byte[] newData = Arrays.copyOfRange(record.getData(), 0, plaintextLength-1);
+        record.setType(type);
+        record.setData(newData);
+        readSequencenumber++;
     }
 
     /**
      *
      */
     public void resetSequencenumbers() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        readSequencenumber = 0;
+        writeSequencenumber = 0;
     }
 }
