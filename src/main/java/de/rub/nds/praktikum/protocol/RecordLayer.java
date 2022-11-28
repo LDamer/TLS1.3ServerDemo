@@ -189,9 +189,9 @@ public class RecordLayer {
         byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(), newLength);
         byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(writeSequencenumber, 8));
         byte[] IV_GCM = Util.XOR(nonce, context.getServerWriteIv());
-        if(IV_GCM == null){
-            System.out.println("\n\n\nerror\n\n\n");
-        }
+        //if(IV_GCM == null){
+        //    System.out.println("\n\n\nerror\n\n\n");
+        //}
         try {
             SecretKey key = new SecretKeySpec(context.getServerWriteKey(), "AES");
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
