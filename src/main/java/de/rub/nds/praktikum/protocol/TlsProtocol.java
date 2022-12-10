@@ -105,6 +105,8 @@ public class TlsProtocol {
         }else if(context.getTlsState() == TlsState.CONNECTED){
             List<Record> recordsList = recordLayer.receiveData();
             passDataToLayer(recordsList);
+        }else if(context.getTlsState() == TlsState.ERROR){
+            throw new TlsException("FATAL ALERT");
         }
     }
 
