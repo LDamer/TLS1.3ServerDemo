@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import javax.crypto.Mac;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.Name;
 
@@ -256,7 +257,27 @@ public class HandshakeLayer extends TlsSubProtocol {
      * updates the context accordingly.
      */
     public void sendFinished() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+
+        //derive keys
+        KeyGenerator.adjustFinishedKeys(context);
+        SecretKeySpec key = new SecretKeySpec(context.getServerFinishedKey(), "HmacSHA256");
+        Mac mac;
+        try {
+            mac = Mac.getInstance("HmacSHA256");
+            mac.init(key);
+        }catch(Exception e){
+            context.setTlsState(TlsState.ERROR);
+            throw new TlsException("verify data, hmac not found");
+        }
+        byte[] verifyData = mac.doFinal(context.getDigest());
+        /*Finished f = new Finished(verifyData);
+        FinishedSerializer sz = new FinishedSerializer(f);
+        byte[] data = sz.serialize();
+        addHeaderSend(data, HandshakeMessageType.FINISHED);
+        */
+        addHeaderSend(verifyData, HandshakeMessageType.FINISHED);
+        context.setTlsState(TlsState.WAIT_FINISHED);
     }
 
     /**
