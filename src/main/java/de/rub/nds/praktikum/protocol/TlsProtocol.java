@@ -101,8 +101,10 @@ public class TlsProtocol {
             handshakeLayer.sendFinished();
             KeyGenerator.adjustApplicationSecrets(context);
             KeyGenerator.adjustApplicationKeys(context);
+        }else if(context.getTlsState() == TlsState.CONNECTED){
+            List<Record> recordsList = recordLayer.receiveData();
+            passDataToLayer(recordsList);
         }
-
     }
 
     /**

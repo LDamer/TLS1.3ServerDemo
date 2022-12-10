@@ -6,6 +6,9 @@ import de.rub.nds.praktikum.exception.TlsException;
 import de.rub.nds.praktikum.records.Record;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * The application layer is responsible for the exchange of application data
@@ -40,7 +43,8 @@ public class ApplicationLayer extends TlsSubProtocol {
      * @throws IOException if something goes wrong during transmission
      */
     public void sendData(byte[] data) throws IOException {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        recordLayer.sendData(data, ProtocolType.APPLICATION_DATA);
     }
 
     /**
@@ -51,7 +55,8 @@ public class ApplicationLayer extends TlsSubProtocol {
      * @return The application data content of the record
      */
     public byte[] receiveData(Record r) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        return r.getData();
     }
 
     /**
@@ -61,14 +66,21 @@ public class ApplicationLayer extends TlsSubProtocol {
      */
     @Override
     public void processByteStream(byte[] stream) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        try {
+            appDataBuffer.write(stream);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * @return
      */
     public byte[] fetchAppData() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        return this.appDataBuffer.toByteArray();
+
     }
 
 }

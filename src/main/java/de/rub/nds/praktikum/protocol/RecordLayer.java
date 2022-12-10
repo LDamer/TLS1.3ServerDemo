@@ -140,7 +140,8 @@ public class RecordLayer {
     }
 
     private List<byte[]> chunkData(byte[] dataToChunk) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        return null;
     }
 
     private byte[] fetchData() throws IOException {
