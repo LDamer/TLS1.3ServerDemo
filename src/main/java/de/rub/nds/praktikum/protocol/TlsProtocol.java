@@ -96,6 +96,7 @@ public class TlsProtocol {
             List<Record> recordsList = recordLayer.receiveData();
             passDataToLayer(recordsList);
         }else if(context.getTlsState() == TlsState.NEGOTIATED){
+            handshakeLayer.sendEncryptedExtensions();
             handshakeLayer.sendCertificates();
             handshakeLayer.sendCertificateVerify();
             handshakeLayer.sendFinished();
