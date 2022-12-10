@@ -26,7 +26,19 @@ public class CertificateEntrySerializer extends Serializer<CertificateEntry> {
 
     @Override
     protected void serializeBytes() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        try{
+            byte[] certBytes = certificateEntry.getCertificate().getEncoded();
+            byte[] len = Util.convertIntToBytes(certBytes.length, 3);
+            byte[] extensionLength = new byte[]{(byte)0x00,(byte)0x00}; // no extension lists
+
+            appendBytes(len);
+            appendBytes(certBytes);
+            appendBytes(extensionLength);
+
+        } catch (IOException e){
+            throw new TlsException("cannot encode certificate");
+        }
     }
 
 }
