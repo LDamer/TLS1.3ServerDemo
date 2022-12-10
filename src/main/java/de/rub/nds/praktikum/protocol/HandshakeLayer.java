@@ -27,12 +27,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.Signature;
-import java.security.SignatureException;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -66,6 +62,23 @@ public class HandshakeLayer extends TlsSubProtocol {
         super(ProtocolType.HANDSHAKE.getByteValue());
         this.context = context;
         this.recordLayer = recordLayer;
+    }
+
+    /**
+     * Helper function.
+     * Adds the record headers, updates the digest and sends the data
+     */
+    private void addHeaderSend(byte[] data, HandshakeMessageType t){
+        byte[] length = Util.convertIntToBytes(data.length, 3);
+        byte[] type =  new byte[]{t.getValue()};
+        byte[] concat = Util.concatenate(type, length, data);
+        context.updateDigest(concat);
+        try{
+            recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
+        } catch (IOException e){
+            context.setTlsState(TlsState.ERROR);
+            throw new TlsException("cannot send record");
+        }
     }
 
     /**
@@ -127,17 +140,8 @@ public class HandshakeLayer extends TlsSubProtocol {
 
         ServerHello sh = new ServerHello(v, randBytes,sessionId, suite, compressionMethod, extensions);
         ServerHelloSerializer shz = new ServerHelloSerializer(sh);
-        byte[] serialized = shz.serialize();
-        byte[] length = Util.convertIntToBytes(serialized.length, 3);
-        byte[] type = new byte[]{0x02};
-        byte[] concat = Util.concatenate(type, length, serialized);
-        context.updateDigest(concat);
-        try {
-            recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
-        } catch (Exception e) {
-            context.setTlsState(TlsState.ERROR);
-            throw new TlsException();
-        }
+        addHeaderSend(shz.serialize(), HandshakeMessageType.SERVER_HELLO);
+
         context.setTlsState(TlsState.NEGOTIATED);
         KeyGenerator.adjustHandshakeSecrets(context);
         KeyGenerator.adjustHandshakeKeys(context);
@@ -176,18 +180,10 @@ public class HandshakeLayer extends TlsSubProtocol {
         HelloRetryRequest r = new HelloRetryRequest(sessionId, cs, cm, extensions);
         ServerHelloSerializer shz = new ServerHelloSerializer(r);
 
-        byte[] serialized = shz.serialize();
-        byte[] length = Util.convertIntToBytes(serialized.length, 3);
-        byte[] type = new byte[]{0x02};
-        byte[] concat = Util.concatenate(type, length, serialized);
-        context.updateDigest(concat);
-        try {
-            recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
-        }catch(Exception e){
-            context.setTlsState(TlsState.ERROR);
-            throw new TlsException();
-        }
+        addHeaderSend(shz.serialize(), HandshakeMessageType.SERVER_HELLO);
+
         context.setTlsState(TlsState.AWAIT_RETRY_HELLO_RESPONSE);
+
     }
 
     /**
@@ -200,18 +196,8 @@ public class HandshakeLayer extends TlsSubProtocol {
         EncryptedExtensions encExt = new EncryptedExtensions();
         EncryptedExtensionsSerializer serializer = new EncryptedExtensionsSerializer(encExt);
         byte[] data = serializer.serialize();
-        byte[] header = new byte[]{HandshakeMessageType.ENCRYPTED_EXTENSIONS.getValue(),// type
-                                                (byte)0x00, (byte) 0x00, (byte)0x02};// length
-        byte[] dataWithHeader = Util.concatenate(header, data);
-        context.updateDigest(dataWithHeader);
-        try {
-            //recordLayer.activateEncryption();
-            recordLayer.sendData(dataWithHeader, ProtocolType.HANDSHAKE);
-        } catch (IOException e){
-            throw new TlsException("ERROR: Send Encrypted Extensions");
-        }
 
-
+        addHeaderSend(data, HandshakeMessageType.ENCRYPTED_EXTENSIONS);
 
     }
 
@@ -225,15 +211,8 @@ public class HandshakeLayer extends TlsSubProtocol {
         CertificateMessage m = new CertificateMessage(context.getCertificateChain());
         CertificateMessageSerializer se = new CertificateMessageSerializer(m);
         byte[] serializedCerts = se.serialize();
-        byte[] length = Util.convertIntToBytes(serializedCerts.length, 3);
-        byte[] type =  new byte[]{HandshakeMessageType.CERTIFICATE.getValue()};
-        byte[] concat = Util.concatenate(type, length, serializedCerts);
-        context.updateDigest(concat);
-        try{
-            recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
-        } catch (IOException e){
-            throw new TlsException("cannot send records");
-        }
+
+        addHeaderSend(serializedCerts, HandshakeMessageType.CERTIFICATE);
     }
 
     /**
@@ -241,7 +220,42 @@ public class HandshakeLayer extends TlsSubProtocol {
      * RecordLayer and updates the context accordingly.
      */
     public void sendCertificateVerify() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] preamble = new byte[64];
+        for(int i = 0; i < 64; i++){
+                preamble[i] = (byte)0x20;
+        }
+        byte[] label = "TLS 1.3, server CertificateVerify".getBytes(StandardCharsets.UTF_8);
+        byte[] separator = new byte[]{(byte)0x00};
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        }catch(NoSuchAlgorithmException e){
+            context.setTlsState(TlsState.ERROR);
+            throw new TlsException("No Such algorithm in sendCertVerify");
+        }
+        byte[] digest = md.digest(context.getDigest());
+        byte[] dataToSign = Util.concatenate(preamble, label, separator, digest);
+
+        //sign the data
+        PrivateKey privk = context.getCertificatePrivateKey();
+        Signature sig;
+        byte[] signature;
+        try {
+            sig = Signature.getInstance("SHA256withECDSA");
+            sig.initSign(privk);
+            sig.update(dataToSign);
+             signature = sig.sign();
+        }catch(Exception e){
+            context.setTlsState(TlsState.ERROR);
+            throw new TlsException("No Such algorithm in sendCertVerify");
+        }
+
+        //send certificateVerify
+        CertificateVerify cv = new CertificateVerify(SignatureAndHashAlgorithm.ECDSA_SHA256.getValue(), signature);
+        CertificateVerifySerializer sz = new CertificateVerifySerializer(cv);
+        byte[] data = sz.serialize();
+        addHeaderSend(data, HandshakeMessageType.CERTIFICATE_VERIFY);
     }
 
     /**
