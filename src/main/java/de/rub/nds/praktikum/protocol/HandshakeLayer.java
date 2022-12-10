@@ -328,15 +328,13 @@ public class HandshakeLayer extends TlsSubProtocol {
         FinishedParser fp = new FinishedParser(handshakePayload);
         Finished f = fp.parse();
         byte[] serverVerifyData = computeVerifyData(context.getClientFinishedKey());
-        if(serverVerifyData != f.getVerifyData()){
+        if(!Arrays.equals(serverVerifyData, f.getVerifyData())){
             context.setTlsState(TlsState.ERROR);
-            //throw new TlsException("different verify data");
+            throw new TlsException("different verify data");
         }else {
             context.setTlsState(TlsState.CONNECTED);
             context.updateDigest(stream);
-            KeyGenerator.adjustApplicationSecrets(context);
-            KeyGenerator.adjustApplicationKeys(context);
-        }//send finished
+        }
     }
 
 
