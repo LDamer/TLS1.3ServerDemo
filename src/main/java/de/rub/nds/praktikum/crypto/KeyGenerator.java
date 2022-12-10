@@ -109,8 +109,16 @@ public class KeyGenerator {
      * @param context
      */
     public static void adjustFinishedKeys(SessionContext context) {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] clientFinished = HkdFunction.expandLabel(context.getClientHandshakeTrafficSecret(),
+                HkdFunction.FINISHED, new byte[0], 32);
+        byte[] serverFinished= HkdFunction.expandLabel(context.getServerHandshakeTrafficSecret(),
+                HkdFunction.FINISHED, new byte[0], 32);
+
+        context.setClientFinishedKey(clientFinished);
+        context.setServerFinishedKey(serverFinished);
     }
+
 
     private KeyGenerator() {
     }
