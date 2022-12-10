@@ -92,6 +92,13 @@ public class TlsProtocol {
         }else if(context.getTlsState() == TlsState.AWAIT_RETRY_HELLO_RESPONSE){
             List<Record> recordsList = recordLayer.receiveData();
             passDataToLayer(recordsList);
+        }else if(context.getTlsState() == TlsState.WAIT_FINISHED){
+            List<Record> recordsList = recordLayer.receiveData();
+            passDataToLayer(recordsList);
+        }else if(context.getTlsState() == TlsState.NEGOTIATED){
+            handshakeLayer.sendCertificates();
+            handshakeLayer.sendCertificateVerify();
+            handshakeLayer.sendFinished();
         }
 
     }
