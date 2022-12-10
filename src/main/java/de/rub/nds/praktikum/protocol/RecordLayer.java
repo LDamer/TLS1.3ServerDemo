@@ -216,17 +216,27 @@ public class RecordLayer {
         byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(readSequencenumber, 8));
         byte[] IV_GCM = Util.XOR(nonce, context.getClientWriteIv());
         byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(),Util.convertIntToBytes(record.getData().length,2));
+        SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
+        Cipher cipher;
+        assert IV_GCM != null;
         try {
-            SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
-            Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+            cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, IV_GCM));
             cipher.updateAAD(aad);
             byte[] c = cipher.doFinal(record.getData());
             record.setData(c);
-        }catch (Exception e){
-            throw new TlsException("cant find aes gcm for decryption..");
+        }catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException e){
+            e.printStackTrace();
+            throw new TlsException("Problems with AES-GCM decrypt");
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+            throw new TlsException("Illegal Blocksize!");
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
         }
-        //corrent type
+
+
+        //correct type
         int plaintextLength = record.getData().length;
         byte type = record.getData()[plaintextLength-1];
         byte[] newData = Arrays.copyOfRange(record.getData(), 0, plaintextLength-1);
