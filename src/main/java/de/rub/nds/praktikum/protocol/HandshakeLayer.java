@@ -39,6 +39,7 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.naming.Name;
 
 import org.bouncycastle.crypto.tls.Certificate;
+import org.bouncycastle.jcajce.provider.symmetric.Serpent;
 import org.bouncycastle.math.ec.rfc7748.X25519;
 
 /**
@@ -261,16 +262,9 @@ public class HandshakeLayer extends TlsSubProtocol {
 
         //derive keys
         KeyGenerator.adjustFinishedKeys(context);
-        SecretKeySpec key = new SecretKeySpec(context.getServerFinishedKey(), "HmacSHA256");
-        Mac mac;
-        try {
-            mac = Mac.getInstance("HmacSHA256");
-            mac.init(key);
-        }catch(Exception e){
-            context.setTlsState(TlsState.ERROR);
-            throw new TlsException("verify data, hmac not found");
-        }
-        byte[] verifyData = mac.doFinal(context.getDigest());
+
+        byte[] verifyData = computeVerifyData(context.getServerFinishedKey());
+
         /*Finished f = new Finished(verifyData);
         FinishedSerializer sz = new FinishedSerializer(f);
         byte[] data = sz.serialize();
@@ -303,21 +297,56 @@ public class HandshakeLayer extends TlsSubProtocol {
                 //context.updateDigest(stream);
                 processClientHello(payload, stream);
             }catch (IOException e){
-
+                throw new TlsException("cannot process ClienHello");
             }
-        }else if(stream[0] == (byte)03){
-            //for later .... maybe finished message
+        }else if(stream[0] == HandshakeMessageType.FINISHED.getValue()){
+            if(context.getTlsState() != TlsState.WAIT_FINISHED){
+                throw new UnexpectedMessageException();
+            }
+            byte[] lenBytes = Arrays.copyOfRange(stream, 1, 4);
+            int len = Util.convertToInt(lenBytes);
+            byte[] payload = Arrays.copyOfRange(stream, 4, 4 + len);
+            try {
+                //context.updateDigest(stream);
+                processFinished(payload, stream);
+            }catch (IOException e){
+                throw new TlsException("cannot process ClienHello");
+            }
         }
     }
 
-
     /**
      * Example private function called from processByteStream. Parse handshakePayload, check if payload is
-     * correct, handle ClientHello.
+     * correct, handle Finished message.
      *
      * @param stream a TLS 1.3 handshake message from the client as a byte array
      * @param handshakePayload handshakePayload to be parsed
      */
+    private void processFinished(byte[] handshakePayload, byte[] stream) throws IOException {
+        //throw new UnsupportedOperationException("Add code here");
+
+        FinishedParser fp = new FinishedParser(handshakePayload);
+        Finished f = fp.parse();
+        byte[] serverVerifyData = computeVerifyData(context.getClientFinishedKey());
+        if(serverVerifyData != f.getVerifyData()){
+            context.setTlsState(TlsState.ERROR);
+            //throw new TlsException("different verify data");
+        }else {
+            context.setTlsState(TlsState.CONNECTED);
+            context.updateDigest(stream);
+            KeyGenerator.adjustApplicationSecrets(context);
+            KeyGenerator.adjustApplicationKeys(context);
+        }//send finished
+    }
+
+
+        /**
+         * Example private function called from processByteStream. Parse handshakePayload, check if payload is
+         * correct, handle ClientHello.
+         *
+         * @param stream a TLS 1.3 handshake message from the client as a byte array
+         * @param handshakePayload handshakePayload to be parsed
+         */
     private void processClientHello(byte[] handshakePayload, byte[] stream) throws IOException {
         //throw new UnsupportedOperationException("Add code here");
         //parse CH and setup context variables
@@ -424,5 +453,18 @@ public class HandshakeLayer extends TlsSubProtocol {
         byte[] sharedSecret = new byte[32];
         X25519.scalarMult(ephemaralPrivKey, 0 , pubKeyClient, 0, sharedSecret, 0);
         context.setSharedEcdheSecret(sharedSecret);
+    }
+
+    private byte[] computeVerifyData(byte[] k){
+        SecretKeySpec key = new SecretKeySpec(k, "HmacSHA256");
+        Mac mac;
+        try {
+            mac = Mac.getInstance("HmacSHA256");
+            mac.init(key);
+        }catch(Exception e){
+            context.setTlsState(TlsState.ERROR);
+            throw new TlsException("verify data, hmac not found");
+        }
+        return mac.doFinal(context.getDigest());
     }
 }
