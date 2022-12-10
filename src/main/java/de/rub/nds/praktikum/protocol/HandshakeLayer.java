@@ -227,15 +227,8 @@ public class HandshakeLayer extends TlsSubProtocol {
         }
         byte[] label = "TLS 1.3, server CertificateVerify".getBytes(StandardCharsets.UTF_8);
         byte[] separator = new byte[]{(byte)0x00};
-        MessageDigest md;
-        try {
-            md = MessageDigest.getInstance("SHA-256");
-        }catch(NoSuchAlgorithmException e){
-            context.setTlsState(TlsState.ERROR);
-            throw new TlsException("No Such algorithm in sendCertVerify");
-        }
-        byte[] digest = md.digest(context.getDigest());
-        byte[] dataToSign = Util.concatenate(preamble, label, separator, digest);
+
+        byte[] dataToSign = Util.concatenate(preamble, label, separator, context.getDigest());
 
         //sign the data
         PrivateKey privk = context.getCertificatePrivateKey();
@@ -243,9 +236,9 @@ public class HandshakeLayer extends TlsSubProtocol {
         byte[] signature;
         try {
             sig = Signature.getInstance("SHA256withECDSA");
-            sig.initSign(privk);
+            sig.initSign(privk, context.getSecureRandom());
             sig.update(dataToSign);
-             signature = sig.sign();
+            signature = sig.sign();
         }catch(Exception e){
             context.setTlsState(TlsState.ERROR);
             throw new TlsException("No Such algorithm in sendCertVerify");
