@@ -2,6 +2,9 @@ package de.rub.nds.praktikum.messages;
 
 import de.rub.nds.praktikum.constants.HandshakeMessageType;
 import de.rub.nds.praktikum.messages.certificate.CertificateEntry;
+
+import java.sql.Array;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,7 +30,13 @@ public class CertificateMessage extends HandshakeMessage {
      */
     public CertificateMessage(Certificate certificateChain) {
         super(HandshakeMessageType.CERTIFICATE.getValue());
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        certificateEntryList = new ArrayList<>();
+        for(org.bouncycastle.asn1.x509.Certificate c : certificateChain.getCertificateList()){
+            CertificateEntry ce = new CertificateEntry(c, new ArrayList<>());//empty extension list
+            certificateEntryList.add(ce);
+        }
+
     }
 
     public List<CertificateEntry> getCertificateEntryList() {
