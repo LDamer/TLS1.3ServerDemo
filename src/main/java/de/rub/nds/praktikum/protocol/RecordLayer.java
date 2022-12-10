@@ -216,9 +216,6 @@ public class RecordLayer {
         byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(readSequencenumber, 8));
         byte[] IV_GCM = Util.XOR(nonce, context.getClientWriteIv());
         byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(),Util.convertIntToBytes(record.getData().length,2));
-        //if(IV_GCM == null){
-        //    System.out.println("\n\n\nerror\n\n\n");
-        //}
         try {
             SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");

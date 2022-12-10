@@ -454,7 +454,7 @@ public class HandshakeLayer extends TlsSubProtocol {
     }
 
     private byte[] computeVerifyData(byte[] k){
-        SecretKeySpec key = new SecretKeySpec(k, "HmacSHA256");
+        SecretKey key = new SecretKeySpec(k, "HmacSHA256");
         Mac mac;
         try {
             mac = Mac.getInstance("HmacSHA256");
