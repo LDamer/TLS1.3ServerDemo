@@ -19,6 +19,12 @@ public class FinishedParser extends Parser<Finished> {
 
     @Override
     public Finished parse() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        byte[] verifyData = parseByteArrayField(32);//32 byte HMAC output
+        if(getBytesLeft() != 0){
+            throw new ParserException();
+        }
+        Finished f = new Finished(verifyData);
+        return f;
     }
 }
