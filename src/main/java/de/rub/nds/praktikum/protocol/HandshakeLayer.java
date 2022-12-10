@@ -272,6 +272,9 @@ public class HandshakeLayer extends TlsSubProtocol {
         */
         addHeaderSend(verifyData, HandshakeMessageType.FINISHED);
         context.setTlsState(TlsState.WAIT_FINISHED);
+        KeyGenerator.adjustApplicationSecrets(context);
+        KeyGenerator.adjustApplicationKeys(context);
+
     }
 
     /**

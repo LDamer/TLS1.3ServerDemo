@@ -100,8 +100,8 @@ public class TlsProtocol {
             handshakeLayer.sendCertificates();
             handshakeLayer.sendCertificateVerify();
             handshakeLayer.sendFinished();
-            KeyGenerator.adjustApplicationSecrets(context);
-            KeyGenerator.adjustApplicationKeys(context);
+            //KeyGenerator.adjustApplicationSecrets(context);
+            //KeyGenerator.adjustApplicationKeys(context);
         }else if(context.getTlsState() == TlsState.CONNECTED){
             List<Record> recordsList = recordLayer.receiveData();
             passDataToLayer(recordsList);

@@ -130,7 +130,8 @@ public class RecordLayer {
 
             RecordParser parser = new RecordParser(current_data);
             Record record = parser.parse();
-            if(encryptionIsActive) {
+            //don try decrypt the CCS
+            if(encryptionIsActive && record.getType() != ProtocolType.CHANGE_CIPHER_SPEC.getByteValue()) {
                 decrypt(record);
             }
             list.add(record);
