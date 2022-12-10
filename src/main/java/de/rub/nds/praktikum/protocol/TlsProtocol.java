@@ -99,6 +99,8 @@ public class TlsProtocol {
             handshakeLayer.sendCertificates();
             handshakeLayer.sendCertificateVerify();
             handshakeLayer.sendFinished();
+            KeyGenerator.adjustApplicationSecrets(context);
+            KeyGenerator.adjustApplicationKeys(context);
         }
 
     }
