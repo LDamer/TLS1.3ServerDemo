@@ -20,7 +20,8 @@ public class FinishedSerializer extends Serializer<Finished> {
 
     @Override
     protected void serializeBytes() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        appendBytes(finishedMessage.getVerifyData());
     }
 
 }
