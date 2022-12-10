@@ -227,7 +227,7 @@ public class RecordLayer {
             byte[] c = cipher.doFinal(record.getData());
             record.setData(c);
         }catch (Exception e){
-            throw new TlsException("cant find aes gcm");
+            throw new TlsException("cant find aes gcm for decryption..");
         }
         //corrent type
         int plaintextLength = record.getData().length;
