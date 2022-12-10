@@ -22,7 +22,9 @@ public class EncryptedExtensionsSerializer extends Serializer<EncryptedExtension
 
     @Override
     protected void serializeBytes() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        appendBytes(new byte[]{(byte)0x00, (byte)0x00}); //length
+        // no data
     }
 
 }

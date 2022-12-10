@@ -207,7 +207,24 @@ public class HandshakeLayer extends TlsSubProtocol {
      * RecordLayer and updates the context accordingly.
      */
     public void sendEncryptedExtensions() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        //
+        EncryptedExtensions encExt = new EncryptedExtensions();
+        EncryptedExtensionsSerializer serializer = new EncryptedExtensionsSerializer(encExt);
+        byte[] data = serializer.serialize();
+        byte[] header = new byte[]{HandshakeMessageType.ENCRYPTED_EXTENSIONS.getValue(),// type
+                                                (byte)0x00, (byte) 0x00, (byte)0x02};// length
+        byte[] dataWithHeader = Util.concatenate(header, data);
+        context.updateDigest(dataWithHeader);
+        try {
+            //recordLayer.activateEncryption();
+            recordLayer.sendData(dataWithHeader, ProtocolType.HANDSHAKE);
+        } catch (IOException e){
+            throw new TlsException("ERROR: Send Encrypted Extensions");
+        }
+
+
+
     }
 
     /**
