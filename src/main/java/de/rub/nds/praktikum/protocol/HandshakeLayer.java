@@ -15,20 +15,7 @@ import de.rub.nds.praktikum.crypto.KeyGenerator;
 import de.rub.nds.praktikum.exception.ParserException;
 import de.rub.nds.praktikum.exception.TlsException;
 import de.rub.nds.praktikum.exception.UnexpectedMessageException;
-import de.rub.nds.praktikum.messages.CertificateMessage;
-import de.rub.nds.praktikum.messages.CertificateMessageSerializer;
-import de.rub.nds.praktikum.messages.CertificateVerify;
-import de.rub.nds.praktikum.messages.CertificateVerifySerializer;
-import de.rub.nds.praktikum.messages.ClientHello;
-import de.rub.nds.praktikum.messages.ClientHelloParser;
-import de.rub.nds.praktikum.messages.EncryptedExtensions;
-import de.rub.nds.praktikum.messages.EncryptedExtensionsSerializer;
-import de.rub.nds.praktikum.messages.Finished;
-import de.rub.nds.praktikum.messages.FinishedParser;
-import de.rub.nds.praktikum.messages.FinishedSerializer;
-import de.rub.nds.praktikum.messages.HelloRetryRequest;
-import de.rub.nds.praktikum.messages.ServerHello;
-import de.rub.nds.praktikum.messages.ServerHelloSerializer;
+import de.rub.nds.praktikum.messages.*;
 import de.rub.nds.praktikum.messages.extensions.Extension;
 import de.rub.nds.praktikum.messages.extensions.KeyShareEntry;
 import de.rub.nds.praktikum.messages.extensions.KeyShareExtension;
@@ -54,6 +41,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.naming.Name;
 
+import org.bouncycastle.crypto.tls.Certificate;
 import org.bouncycastle.math.ec.rfc7748.X25519;
 
 /**
@@ -233,7 +221,19 @@ public class HandshakeLayer extends TlsSubProtocol {
      * accordingly.
      */
     public void sendCertificates() {
-        throw new UnsupportedOperationException("Add code here");
+        //throw new UnsupportedOperationException("Add code here");
+        CertificateMessage m = new CertificateMessage(context.getCertificateChain());
+        CertificateMessageSerializer se = new CertificateMessageSerializer(m);
+        byte[] serializedCerts = se.serialize();
+        byte[] length = Util.convertIntToBytes(serializedCerts.length, 3);
+        byte[] type =  new byte[]{HandshakeMessageType.CERTIFICATE.getValue()};
+        byte[] concat = Util.concatenate(type, length, serializedCerts);
+        context.updateDigest(concat);
+        try{
+            recordLayer.sendData(concat, ProtocolType.HANDSHAKE);
+        } catch (IOException e){
+            throw new TlsException("cannot send records");
+        }
     }
 
     /**
