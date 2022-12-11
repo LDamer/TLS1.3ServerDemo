@@ -243,15 +243,9 @@ public class RecordLayer {
             cipher.updateAAD(aad);
             byte[] c = cipher.doFinal(record.getData());
             record.setData(c);
-        }catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidAlgorithmParameterException | InvalidKeyException e){
-            //e.printStackTrace();
-            throw new TlsException("Problems with AES-GCM decrypt");
-        } catch (IllegalBlockSizeException e) {
-            //e.printStackTrace();
-            throw new TlsException("Illegal Blocksize!");
-        } catch (BadPaddingException e) {
+        }catch (Exception e){
             e.printStackTrace();
-            //throw new TlsException("Bad Padding!");
+            throw new TlsException("Problems with AES-GCM decrypt");
         }
 
 
