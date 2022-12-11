@@ -234,8 +234,8 @@ public class RecordLayer {
         System.out.println("AAD: \n" +
                 Util.bytesToHexString(aad));
         System.out.println("IV: \n" +
-                Util.bytesToHexString(IV_GCM));
-        System.out.println("TLEN: 128\n");
+                Util.bytesToHexString(context.getClientWriteIv()));
+        System.out.println("TLEN: 128");
         System.out.println("------ DECRYPT ---------");
         try {
             cipher = Cipher.getInstance("AES/GCM/NoPadding");
@@ -271,5 +271,12 @@ public class RecordLayer {
         //throw new UnsupportedOperationException("Add code here");
         readSequencenumber = 0;
         writeSequencenumber = 0;
+    }
+
+    public void setReadSequencenumber(int a){
+        readSequencenumber = a;
+    }
+    public void setWriteSequencenumber(int a){
+        writeSequencenumber = a;
     }
 }
