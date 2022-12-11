@@ -234,9 +234,8 @@ public class RecordLayer {
                 Util.bytesToHexString(key.getEncoded()));
         System.out.println("AAD: \n" +
                 Util.bytesToHexString(aad));
-        System.out.println("IV: \n" +
+        System.out.println("ClientWriteIV: \n" +
                 Util.bytesToHexString(context.getClientWriteIv()));
-        System.out.println("TLEN: 128");
         System.out.println("------ DECRYPT ---------");
         try {
             cipher = Cipher.getInstance("AES/GCM/NoPadding");
