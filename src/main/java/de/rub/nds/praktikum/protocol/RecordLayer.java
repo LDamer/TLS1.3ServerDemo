@@ -132,6 +132,7 @@ public class RecordLayer {
             Record record = parser.parse();
             //don try decrypt the CCS
             if(encryptionIsActive && record.getType() != ProtocolType.CHANGE_CIPHER_SPEC.getByteValue()) {
+
                 decrypt(record);
             }
             list.add(record);
@@ -139,6 +140,7 @@ public class RecordLayer {
         }
         return list;
     }
+
 
     private List<byte[]> chunkData(byte[] dataToChunk) {
         //throw new UnsupportedOperationException("Add code here");
@@ -220,6 +222,21 @@ public class RecordLayer {
         SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
         Cipher cipher;
         assert IV_GCM != null;
+        System.out.println("------ DECRYPT ---------");
+        System.out.println("HEADER - type: \n" +
+                Util.bytesToHexString(new byte[]{(byte)record.getType()}));
+        System.out.println("HEADER - version: \n" +
+                Util.bytesToHexString(record.getVersion()));
+        System.out.println("HEADER - data (to encrypt):\n " +
+                Util.bytesToHexString(record.getData()));
+        System.out.println("KEY: \n" +
+                Util.bytesToHexString(key.getEncoded()));
+        System.out.println("AAD: \n" +
+                Util.bytesToHexString(aad));
+        System.out.println("IV: \n" +
+                Util.bytesToHexString(IV_GCM));
+        System.out.println("TLEN: 128\n");
+        System.out.println("------ DECRYPT ---------");
         try {
             cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, IV_GCM));
