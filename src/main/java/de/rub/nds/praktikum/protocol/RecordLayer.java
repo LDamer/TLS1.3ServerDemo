@@ -223,6 +223,7 @@ public class RecordLayer {
         Cipher cipher;
         assert IV_GCM != null;
         System.out.println("------ DECRYPT ---------");
+        System.out.println("readSequenceNumber= " + readSequencenumber);
         System.out.println("HEADER - type: \n" +
                 Util.bytesToHexString(new byte[]{(byte)record.getType()}));
         System.out.println("HEADER - version: \n" +
