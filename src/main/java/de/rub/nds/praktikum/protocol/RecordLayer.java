@@ -251,7 +251,7 @@ public class RecordLayer {
             throw new TlsException("Illegal Blocksize!");
         } catch (BadPaddingException e) {
             e.printStackTrace();
-            throw new TlsException("Bad Padding!");
+            //throw new TlsException("Bad Padding!");
         }
 
 
