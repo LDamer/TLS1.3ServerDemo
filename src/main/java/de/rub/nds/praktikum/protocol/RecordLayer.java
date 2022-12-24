@@ -2,6 +2,7 @@ package de.rub.nds.praktikum.protocol;
 
 import de.rub.nds.praktikum.constants.HandshakeMessageType;
 import de.rub.nds.praktikum.constants.ProtocolType;
+import de.rub.nds.praktikum.constants.TlsState;
 import de.rub.nds.praktikum.exception.TlsException;
 import de.rub.nds.praktikum.records.Record;
 import de.rub.nds.praktikum.records.RecordParser;
@@ -219,7 +220,12 @@ public class RecordLayer {
         byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(readSequencenumber, 8));
         byte[] IV_GCM = Util.XOR(nonce, context.getClientWriteIv());
         byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(),Util.convertIntToBytes(record.getData().length,2));
-        SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
+        SecretKey key;
+        if(context.getTlsState() == TlsState.WAIT_FINISHED){
+            key = new SecretKeySpec(context.getClientFinishedKey(), "AES");
+        }else {
+            key = new SecretKeySpec(context.getClientWriteKey(), "AES");
+        }
         Cipher cipher;
         //assert IV_GCM != null;
         System.out.println("------ DECRYPT ---------");
