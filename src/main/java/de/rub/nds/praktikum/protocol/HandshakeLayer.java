@@ -273,7 +273,7 @@ public class HandshakeLayer extends TlsSubProtocol {
         addHeaderSend(verifyData, HandshakeMessageType.FINISHED);
         context.setTlsState(TlsState.WAIT_FINISHED);
         KeyGenerator.adjustApplicationSecrets(context);
-        KeyGenerator.adjustApplicationKeys(context);
+        //KeyGenerator.adjustApplicationKeys(context);
     }
 
     /**
@@ -329,13 +329,14 @@ public class HandshakeLayer extends TlsSubProtocol {
 
         FinishedParser fp = new FinishedParser(handshakePayload);
         Finished f = fp.parse();
-        byte[] serverVerifyData = computeVerifyData(context.getClientFinishedKey());
-        if(!Arrays.equals(serverVerifyData, f.getVerifyData())){
+        byte[] serverVerifyData = computeVerifyData(context.getClientFinishedKey());// ??
+        if(!Arrays.equals(serverVerifyData, f.getVerifyData())){/// ???
             context.setTlsState(TlsState.ERROR);
             throw new TlsException("different verify data");
         }else {
             context.setTlsState(TlsState.CONNECTED);
             context.updateDigest(stream);
+            KeyGenerator.adjustApplicationKeys(context);
         }
     }
 
