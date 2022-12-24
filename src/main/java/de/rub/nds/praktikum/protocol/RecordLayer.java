@@ -220,12 +220,7 @@ public class RecordLayer {
         byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(readSequencenumber, 8));
         byte[] IV_GCM = Util.XOR(nonce, context.getClientWriteIv());
         byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(),Util.convertIntToBytes(record.getData().length,2));
-        SecretKey key;
-        if(context.getTlsState() == TlsState.WAIT_FINISHED){
-            key = new SecretKeySpec(context.getClientFinishedKey(), "AES");
-        }else {
-            key = new SecretKeySpec(context.getClientWriteKey(), "AES");
-        }
+        SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
         Cipher cipher;
         //assert IV_GCM != null;
         System.out.println("------ DECRYPT ---------");

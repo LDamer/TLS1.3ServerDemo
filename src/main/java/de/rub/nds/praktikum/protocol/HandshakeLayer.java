@@ -273,7 +273,7 @@ public class HandshakeLayer extends TlsSubProtocol {
         addHeaderSend(verifyData, HandshakeMessageType.FINISHED);
         context.setTlsState(TlsState.WAIT_FINISHED);
         KeyGenerator.adjustApplicationSecrets(context);
-        KeyGenerator.adjustApplicationKeys(context);
+        //KeyGenerator.adjustApplicationKeys(context);
     }
 
     /**
@@ -336,7 +336,7 @@ public class HandshakeLayer extends TlsSubProtocol {
         }else {
             context.setTlsState(TlsState.CONNECTED);
             context.updateDigest(stream);
-
+            KeyGenerator.adjustApplicationKeys(context);
         }
     }
 
