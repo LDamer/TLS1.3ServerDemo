@@ -44,12 +44,12 @@ public class Aufgabe4 {
         Record finishedRecordFromWireshark = parser.parse();
 
         SessionContext context = new SessionContext(null, null);
+
         //context.setClientWriteKey(Util.hexStringToByteArray("0f9e750587f043e1cd91046bfef1cb6c"));
         context.setClientWriteKey(Util.hexStringToByteArray("f6ae23ce44556119b1f465b68e52a15b"));
-        context.setClientFinishedKey(Util.hexStringToByteArray("f6ae23ce44556119b1f465b68e52a15b"));
+
         //context.setClientWriteIv(Util.hexStringToByteArray("8903d210bc1bb2a82460dc7a"));
         context.setClientWriteIv(Util.hexStringToByteArray("a48667dfee3db23b08a4d04a"));
-
 
         context.setSelectedVersion(ProtocolVersion.TLS_1_3);
         context.setSelectedCiphersuite(CipherSuite.TLS_AES_128_GCM_SHA256);

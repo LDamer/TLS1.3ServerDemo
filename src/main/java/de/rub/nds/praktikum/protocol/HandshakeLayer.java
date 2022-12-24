@@ -337,6 +337,7 @@ public class HandshakeLayer extends TlsSubProtocol {
             context.setTlsState(TlsState.CONNECTED);
             context.updateDigest(stream);
             KeyGenerator.adjustApplicationKeys(context);
+            recordLayer.resetSequencenumbers(); // I think this must be here -> testStepStatemachineWait_FinishedToConnected in tlsProtocolTest
         }
     }
 
