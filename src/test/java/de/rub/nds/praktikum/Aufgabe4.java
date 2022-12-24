@@ -38,12 +38,18 @@ public class Aufgabe4 {
     @Test
     public void testDecryptFinishedMessage(){
                                                                                 //header  |
-        RecordParser parser  = new RecordParser(Util.hexStringToByteArray("170303003558b39ec23d18d9baec7b41f4e651146f5fc341fe893379318e973d777fe27f9aade50a2b0da7fd22646490e0d0df3f9d7c703151b8"));
+        //RecordParser parser  = new RecordParser(Util.hexStringToByteArray("170303003558b39ec23d18d9baec7b41f4e651146f5fc341fe893379318e973d777fe27f9aade50a2b0da7fd22646490e0d0df3f9d7c703151b8"));
+        RecordParser parser  = new RecordParser(Util.hexStringToByteArray("17030300355cad612570a69858dc47bd2272ba0ed7ad4313871b21bb4170b442914eb8cd0fdc3df84131ebec03701ca18b1a51a669c4fbf6a1cd"));
+
         Record finishedRecordFromWireshark = parser.parse();
 
         SessionContext context = new SessionContext(null, null);
-        context.setClientWriteKey(Util.hexStringToByteArray("0f9e750587f043e1cd91046bfef1cb6c"));
-        context.setClientWriteIv(Util.hexStringToByteArray("8903d210bc1bb2a82460dc7a"));
+        //context.setClientWriteKey(Util.hexStringToByteArray("0f9e750587f043e1cd91046bfef1cb6c"));
+        context.setClientWriteKey(Util.hexStringToByteArray("f6ae23ce44556119b1f465b68e52a15b"));
+
+        //context.setClientWriteIv(Util.hexStringToByteArray("8903d210bc1bb2a82460dc7a"));
+        context.setClientWriteIv(Util.hexStringToByteArray("a48667dfee3db23b08a4d04a"));
+
         context.setSelectedVersion(ProtocolVersion.TLS_1_3);
         context.setSelectedCiphersuite(CipherSuite.TLS_AES_128_GCM_SHA256);
 

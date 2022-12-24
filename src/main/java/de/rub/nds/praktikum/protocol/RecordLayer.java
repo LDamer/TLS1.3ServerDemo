@@ -219,13 +219,13 @@ public class RecordLayer {
         byte[] nonce = Util.concatenate(new byte[4],Util.longToBytes(readSequencenumber, 8));
         byte[] IV_GCM = Util.XOR(nonce, context.getClientWriteIv());
         byte[] aad = Util.concatenate(new byte[]{record.getType()}, record.getVersion(),Util.convertIntToBytes(record.getData().length,2));
-        SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES/GCM/NoPadding");
+        SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
         Cipher cipher;
         //assert IV_GCM != null;
         System.out.println("------ DECRYPT ---------");
         System.out.println("readSequenceNumber= " + readSequencenumber);
         System.out.println("HEADER - type: \n" +
-                Util.bytesToHexString(new byte[]{(byte)record.getType()}));
+                Util.bytesToHexString(new byte[]{record.getType()}));
         System.out.println("HEADER - version: \n" +
                 Util.bytesToHexString(record.getVersion()));
         System.out.println("HEADER - data (to encrypt):\n " +
@@ -243,6 +243,9 @@ public class RecordLayer {
             cipher.updateAAD(aad);
             byte[] c = cipher.doFinal(record.getData());
             record.setData(c);
+        }catch(AEADBadTagException e){
+            e.printStackTrace();
+            throw new TlsException("WE GOT A BAD TAG...");
         }catch (Exception e){
             e.printStackTrace();
             throw new TlsException("Problems with AES-GCM decrypt");
