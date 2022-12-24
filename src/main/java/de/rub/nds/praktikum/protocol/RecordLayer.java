@@ -223,7 +223,7 @@ public class RecordLayer {
         SecretKey key = new SecretKeySpec(context.getClientWriteKey(), "AES");
         Cipher cipher;
         //assert IV_GCM != null;
-        System.out.println("------ DECRYPT ---------");
+        /*System.out.println("------ DECRYPT ---------");
         System.out.println("readSequenceNumber= " + readSequencenumber);
         System.out.println("HEADER - type: \n" +
                 Util.bytesToHexString(new byte[]{record.getType()}));
@@ -238,6 +238,7 @@ public class RecordLayer {
         System.out.println("ClientWriteIV: \n" +
                 Util.bytesToHexString(context.getClientWriteIv()));
         System.out.println("------ DECRYPT ---------");
+        */
         try {
             cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, IV_GCM));
